@@ -1,0 +1,25 @@
+{
+  "name": "topos",
+  "description": "Use Cursor as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Cursor sessions as a source.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dialogues"
+  },
+  "homepage": "https://topos.dialogues.ai",
+  "repository": "https://github.com/dialoguesai/topos-plugin",
+  "license": "MIT",
+  "keywords": [
+    "topos",
+    "dialogues",
+    "personal-data",
+    "memory",
+    "mcp",
+    "coding-sessions",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "skills": "./skills",
+  "mcpServers": "./mcp.cursor.json",
+  "hooks": "./hooks/cursor.hooks.json"
+}

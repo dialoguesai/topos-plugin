@@ -1,0 +1,68 @@
+#!/bin/sh
+# topos-sync — the turn-end hook (Claude Code `Stop`, Cursor `stop`).
+#
+#   topos-sync --source claude_code_sessions|cursor_sessions [--client NAME]
+#
+# Reads the hook's JSON from stdin, keeps ONLY `transcript_path`, and starts
+#   topos-node sources sync <source> --session "<path>" --quiet
+# detached, with its output discarded, then exits 0 at once (well under the
+# 1.5 s that SessionEnd-class hooks get). Nothing from stdin is written to disk:
+# Cursor's payload carries `user_email`, and it is dropped with the rest.
+#
+# No binary, no path, or a path that does not exist → exit 0 and do nothing;
+# the node's hourly schedule is the guarantee (PLAN §1.3).
+set -u
+# PATH may be EMPTY here (GUI-launched hosts, spike P0.5): no external command
+# before this line; the directory comes from parameter expansion + cd/pwd builtins.
+PATH="/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"; export PATH
+case "$0" in */*) here=$(CDPATH= cd -- "${0%/*}" && pwd) ;; *) here=$(pwd) ;; esac
+. "$here/../lib/resolve.sh"
+topos_sane_path
+
+SOURCE=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --source) SOURCE=${2:-}; shift 2 ;;
+        --source=*) SOURCE=${1#--source=}; shift ;;
+        --client) shift 2 ;;
+        *) shift ;;
+    esac
+done
+[ -n "$SOURCE" ] || exit 0
+
+# Read at most 1 MiB of stdin, never from a terminal.
+INPUT=""
+if [ ! -t 0 ]; then
+    INPUT=$(head -c 1048576 2>/dev/null || true)
+fi
+
+TRANSCRIPT=""
+if [ -n "$INPUT" ]; then
+    if PY=$(topos_python); then
+        TRANSCRIPT=$(printf '%s' "$INPUT" | "$PY" -I -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    d = {}
+p = d.get("transcript_path") if isinstance(d, dict) else None
+sys.stdout.write(p if isinstance(p, str) else "")
+' 2>/dev/null)
+    else
+        TRANSCRIPT=$(printf '%s' "$INPUT" | sed -n 's/.*"transcript_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)
+    fi
+fi
+unset INPUT
+
+NODE=$(topos_resolve_node "$0") || exit 0
+[ -n "$TRANSCRIPT" ] || exit 0
+case "$TRANSCRIPT" in ~/*) TRANSCRIPT="${HOME:-}/${TRANSCRIPT#~/}" ;; esac
+[ -f "$TRANSCRIPT" ] || exit 0
+
+# Double fork: the inner job is re-parented to init and survives this hook's
+# process group; nohup shields it from SIGHUP; all output is discarded.
+(
+    nohup "$NODE" sources sync "$SOURCE" --session "$TRANSCRIPT" --quiet \
+        </dev/null >/dev/null 2>&1 &
+) >/dev/null 2>&1
+exit 0

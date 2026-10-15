@@ -1,0 +1,43 @@
+{
+  "name": "topos",
+  "description": "Use Codex as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Codex sessions as a source.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dialogues",
+    "url": "https://dialogues.ai"
+  },
+  "homepage": "https://topos.dialogues.ai",
+  "repository": "https://github.com/dialoguesai/topos-plugin",
+  "license": "MIT",
+  "keywords": [
+    "topos",
+    "dialogues",
+    "personal-data",
+    "memory",
+    "mcp",
+    "coding-sessions",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/codex.hooks.json",
+  "onboardingSkill": "./skills/topos-setup/SKILL.md",
+  "interface": {
+    "displayName": "Topos",
+    "shortDescription": "Answer questions from your own data, and keep your Codex sessions as a source.",
+    "longDescription": "Topos runs on your computer and holds your own data: messages, mail, chat history and, with this plugin, your coding sessions. Say \"set up Topos\" and the agent installs or finds the node, connects it to your account in the browser, and turns on your session history. Then ask questions like \"What have I been building this week, and where did I get stuck?\". Transcript files never leave the computer; answers go to the AI company behind this tool.",
+    "developerName": "Dialogues",
+    "category": "Productivity",
+    "capabilities": [
+      "Answer questions from your Topos",
+      "Set up a Topos node on this computer",
+      "Keep your coding sessions as a Topos source"
+    ],
+    "websiteURL": "https://topos.dialogues.ai",
+    "defaultPrompt": [
+      "Set up Topos",
+      "What have I been building this week, and where did I get stuck?"
+    ]
+  }
+}

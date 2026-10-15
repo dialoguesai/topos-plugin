@@ -1,0 +1,25 @@
+{
+  "name": "topos",
+  "owner": {
+    "name": "Dialogues",
+    "url": "https://dialogues.ai"
+  },
+  "metadata": {
+    "description": "Topos for coding agents: one plugin that sets up a Topos node, answers questions from your own data, and keeps your coding sessions as a source.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "topos",
+      "source": "./",
+      "description": "Use Claude Code as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Claude Code sessions as a source.",
+      "category": "productivity",
+      "tags": [
+        "topos",
+        "personal-data",
+        "mcp",
+        "coding-sessions"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+#!/bin/sh
+# topos-mcp — the plugin's MCP launcher (CONTRACTS.md §5).
+#
+#   topos-mcp --client claude-code|codex|cursor|gemini
+#
+# 1. Resolves the topos-node binary by the fixed candidate list (lib/resolve.sh).
+# 2. Waits for the node's unix socket, then `exec topos-node mcp --client NAME`.
+# 3. If the binary is missing, or the socket never appears, it does NOT fail:
+#    it serves a tiny stand-in MCP server (lib/fallback_mcp.py, or
+#    lib/fallback_mcp.sh when python3 is absent) that lists the same five tools
+#    and answers every call with one sentence:
+#       binary missing  → This agent isn't connected to Topos yet — say "set up Topos".
+#       socket missing  → Topos isn't running — say "start Topos".
+#    The python stand-in also hands over to the real server as soon as the node
+#    appears, so the user never has to reload the plugin after setup.
+#
+# Never prints a secret, never reads ~/.topos/.env, never tries TCP.
+set -u
+
+# PATH may be EMPTY here (GUI-launched hosts, spike P0.5): no external command
+# before this line; the directory comes from parameter expansion + cd/pwd builtins.
+PATH="/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"; export PATH
+case "$0" in */*) here=$(CDPATH= cd -- "${0%/*}" && pwd) ;; *) here=$(pwd) ;; esac
+. "$here/../lib/resolve.sh"
+topos_sane_path
+
+CLIENT=$(topos_arg_client "$@")
+[ -n "$CLIENT" ] || CLIENT=claude-code
+
+MSG_NOT_SET_UP='This agent isn'"'"'t connected to Topos yet — say "set up Topos".'
+MSG_NOT_RUNNING='Topos isn'"'"'t running — say "start Topos".'
+
+serve_fallback() {
+    # $1 = message, $2 = node binary or empty
+    if PY=$(topos_python); then
+        exec "$PY" -I "$here/../lib/fallback_mcp.py" \
+            --client "$CLIENT" --message "$1" --node "${2:-}" --socket "$(topos_socket_path)"
+    fi
+    exec /bin/sh "$here/../lib/fallback_mcp.sh" "$1"
+}
+
+NODE=$(topos_resolve_node "$0") || NODE=""
+if [ -z "$NODE" ]; then
+    serve_fallback "$MSG_NOT_SET_UP" ""
+fi
+
+# Wait for the socket. The budget is below each client's MCP startup timeout:
+# Codex stops waiting after startup_timeout_sec = 10 (config reference, read
+# 2026-10-15); Claude Code and Cursor allow more. Half-second steps.
+case "$CLIENT" in
+    codex) MAX_TICKS=16 ;;   # 8 s
+    *)     MAX_TICKS=40 ;;   # 20 s (spike P0.5 asked for 20 s)
+esac
+SOCK=$(topos_socket_path)
+tick=0
+while [ ! -S "$SOCK" ] && [ "$tick" -lt "$MAX_TICKS" ]; do
+    sleep 0.5
+    tick=$((tick + 1))
+done
+
+if [ -S "$SOCK" ]; then
+    exec "$NODE" mcp --client "$CLIENT"
+fi
+serve_fallback "$MSG_NOT_RUNNING" "$NODE"

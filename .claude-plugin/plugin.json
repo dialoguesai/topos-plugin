@@ -1,0 +1,24 @@
+{
+  "name": "topos",
+  "displayName": "Topos",
+  "version": "0.1.0",
+  "description": "Use Claude Code as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Claude Code sessions as a source.",
+  "author": {
+    "name": "Dialogues",
+    "url": "https://dialogues.ai"
+  },
+  "homepage": "https://topos.dialogues.ai",
+  "repository": "https://github.com/dialoguesai/topos-plugin",
+  "license": "MIT",
+  "keywords": [
+    "topos",
+    "dialogues",
+    "personal-data",
+    "memory",
+    "mcp",
+    "coding-sessions",
+    "claude-code",
+    "codex",
+    "cursor"
+  ]
+}

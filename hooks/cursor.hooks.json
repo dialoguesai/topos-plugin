@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "\"${CURSOR_PLUGIN_ROOT}\"/bin/topos-sync --source cursor_sessions --client cursor",
+        "timeout": 5
+      }
+    ]
+  }
+}

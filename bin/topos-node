@@ -1,0 +1,21 @@
+#!/bin/sh
+# topos-node — a thin wrapper so the agent's shell can say `topos-node …` even
+# when ~/.local/bin is not on its PATH (GUI-launched hosts have an empty PATH;
+# spike P0.5). Claude Code puts a plugin's bin/ on the Bash tool's PATH while the
+# plugin is enabled, so this wrapper is what `topos-node status --json` runs.
+#
+# It resolves the real binary by the fixed candidate list and execs it with the
+# same arguments. It never resolves to itself. If no binary exists it says so on
+# stderr and exits 127, which the topos-setup skill reads as "not installed".
+set -u
+# PATH may be EMPTY here (GUI-launched hosts, spike P0.5): no external command
+# before this line; the directory comes from parameter expansion + cd/pwd builtins.
+PATH="/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"; export PATH
+case "$0" in */*) here=$(CDPATH= cd -- "${0%/*}" && pwd) ;; *) here=$(pwd) ;; esac
+. "$here/../lib/resolve.sh"
+topos_sane_path
+if NODE=$(topos_resolve_node "$0"); then
+    exec "$NODE" "$@"
+fi
+printf '%s\n' 'topos-node is not installed on this computer yet — say "set up Topos".' >&2
+exit 127

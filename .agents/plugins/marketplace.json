@@ -1,0 +1,19 @@
+{
+  "name": "topos",
+  "interface": {
+    "displayName": "Topos"
+  },
+  "plugins": [
+    {
+      "name": "topos",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

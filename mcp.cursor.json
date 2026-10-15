@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "topos": {
+      "command": "${CURSOR_PLUGIN_ROOT}/bin/topos-mcp",
+      "args": [
+        "--client",
+        "cursor"
+      ]
+    }
+  }
+}

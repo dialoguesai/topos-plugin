@@ -1,0 +1,4 @@
+{
+  "description": "Codex: no hooks in v1. Hook-bearing plugins are ineligible for OpenAI's public directory and need a manual /hooks trust step; the Topos node's hourly sync of ~/.codex/sessions is the guarantee instead. This file exists so that Codex's default discovery does not pick up hooks/hooks.json (Claude Code's hooks).",
+  "hooks": {}
+}

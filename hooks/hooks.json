@@ -1,0 +1,29 @@
+{
+  "description": "Topos for Claude Code: after every turn, hand this session's transcript to the local Topos node (Stop, async, detached); at session start, say one line when Topos needs attention (SessionStart, under 1.5 s).",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/topos-sync",
+            "args": ["--source", "claude_code_sessions", "--client", "claude-code"],
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/topos-health",
+            "args": ["--client", "claude-code"],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
