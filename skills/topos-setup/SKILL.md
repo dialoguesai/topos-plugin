@@ -52,15 +52,35 @@ sh "${CLAUDE_PLUGIN_ROOT}/skills/topos-setup/scripts/check-node.sh" \
 python3 -I "${CLAUDE_PLUGIN_ROOT}/skills/topos-setup/scripts/verdict.py" "${TMPDIR:-/tmp}/topos-setup-checks.jsonl"
 ```
 
-The checks (c1–c8): c1 binary found by the fixed candidate list (`$TOPOS_NODE_BIN`,
-`~/.local/bin`, `~/.topos/runtime/bin`, `/opt/homebrew/bin`, `/usr/local/bin`) · c2 node
-running · c3 paired · c4 control plane connected · c5 owner key persisted by the node ·
-c6 this tool's source enabled · c7 this agent enrolled · c8 the turn-end hook registered
-(Codex: no hook by design, the hourly sync is the guarantee).
+Give the Bash call a 10-minute timeout: c7 asks the node a real question. The eight checks
+are the same c1–c8 the house QA skill (`topos-install-qa`, Path C) observes, with the same
+ids and pass rules:
 
-- **c1 fails** → journey A (new computer).
-- **c1 passes** (Topos.app or an earlier install) → journey B (Topos already running).
-- Already **GOOD TO GO** → say so and offer the first question (step "Aha" below).
+c1 the binary resolves by the fixed candidate list (`$TOPOS_NODE_BIN`, `~/.local/bin`,
+`~/.topos/runtime/bin`, `/opt/homebrew/bin`, `/usr/local/bin`) **and** has the on-ramp
+commands (`topos-node pair --help` exits 0; without `pair` it is *blocked*: "on-ramp release
+not installed", fix `uv tool upgrade topos-node`) · c2 the node runs as a service
+(`service status` exits 0; managed by Topos.app records *skip*) · c3 `status --json` exits 0
+with `paired: true`, `control_plane: connected`, `node.owner_key_persisted: true` · c4 this
+agent is approved (`agents list --json`, `revoked: false`) and `~/.topos/agents/<client>.token`
+is mode 0600 in a 0700 folder — existence and mode only, the file is never read · c5 the
+Topos tools answer through the plugin's own launcher: `tools/list` is exactly the five v1
+tools and `mcp_session_context` says `contract_version: 1`, `paired: true`, `agent.client` =
+this client · c6 the source is `enabled: true`, `paused: false`, `last_sync_at` set · c7 the
+first answer: `query_scope(scope_id="ai_coding_sessions:read", intent="What have I been
+building this week, and where did I get stuck?")` returns a non-empty `public_result`
+(shape only; the text is never recorded) · c8 no node secret in the transcripts, compared by
+hash — **always blocked here**: it needs the node's secret values and this agent never reads
+`~/.topos/.env` or `~/.topos/agents/*.token`. A person runs
+`topos-install-qa/scripts/qa-path-c.sh` for it.
+
+So the best verdict this skill can give is **INCOMPLETE with c8 as the only blocked check**;
+say that in those words. `GOOD TO GO` comes from the person's run.
+
+- **c1 fails** (no binary) → journey A (new computer).
+- **c1 passes or is blocked** (Topos.app or an earlier install) → journey B (Topos already
+  running). Blocked c1 means the node needs upgrading first; ask before `uv tool upgrade`.
+- Only c8 blocked → say so and offer the first question (step "Aha" below).
 
 ## Journey A — a new computer
 
@@ -105,9 +125,15 @@ a key in the chat.
 | Capture | `Stop` hook (async, detached) plus the node's hourly sync | **no hook in v1**; the hourly sync only | `stop` hook plus the hourly sync; needs transcripts enabled in Cursor's settings |
 | Source id | `claude_code_sessions` | `codex_sessions` | `cursor_sessions` |
 
+No plugin yet, or a client where installing it first is awkward (Codex Desktop, Cursor)?
+The agent-readable page `https://topos.dialogues.ai/setup/agent.md` is the same journey in
+the owner's order; the user pastes "Set up Topos by following
+topos.dialogues.ai/setup/agent.md" and the plugin is installed last.
+
 The plugin's MCP server never fails to start: until the node exists it answers every
-tool call with "This agent isn't connected to Topos yet — say "set up Topos"", and when
-the node is installed but not running with "Topos isn't running — say "start Topos"". In
+tool call with `This agent isn't connected to Topos yet — say "set up Topos".`, and when
+the node is installed but not running with `Topos isn't running — say "start Topos".`
+(a revoked agent gets `This agent was disconnected from Topos.` from the node itself). In
 Claude Code, Codex and Cursor the stand-in hands over to the real server by itself on the
 next tool call once the node is up, so the reload in A11 is only needed when a client
 does not pick that up (the verdict's c7 and a first tool call tell you).

@@ -15,6 +15,13 @@ follows [Agent Plugins 1.0.0](https://agent-plugins.org) (`plugin.json`, `skills
 
 ## Install
 
+No plugin yet, or a client where the plugin is awkward to install first (Codex Desktop,
+Cursor)? Paste one sentence into the agent: **"Set up Topos by following
+topos.dialogues.ai/setup/agent.md"**. That agent-readable page
+([`https://topos.dialogues.ai/setup/agent.md`](https://topos.dialogues.ai/setup/agent.md))
+is the same journey in the owner's order — install Topos, create it, add the tool as a
+source — and installs this plugin last.
+
 ### Claude Code (v2.1.275 or later)
 
 In a session, one line — the review panel lists the skills, the MCP server and the hooks,

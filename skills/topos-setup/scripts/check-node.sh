@@ -1,17 +1,23 @@
 #!/bin/sh
-# check-node.sh — the eight setup checks (c1–c8), one JSON line each.
+# check-node.sh — the eight setup checks c1–c8, one JSON line each.
 #
-#   sh check-node.sh --client claude-code --source claude_code_sessions \
+#   sh check-node.sh --client claude-code [--source claude_code_sessions] \
 #                    [--plugin-root DIR] [--out checks.jsonl]
 #
-# Read-only: it runs `topos-node --version` and `topos-node status --json` and
-# reads files. It never writes to ~/.topos, never reads ~/.topos/.env, and the
-# lines it records never carry a secret (`status --json` has none by contract).
+# The ids and pass rules mirror the house QA skill's Path C observer
+# (topos-install-qa/scripts/qa-path-c.sh) exactly, so the agent and a person
+# report the same eight things the same way. Read-only: it runs `topos-node
+# --version`, `pair --help`, `service status`, `status --json`, `agents list
+# --json`, stats (never reads) the agent label file, and speaks MCP to the
+# plugin's own launcher. It never writes under ~/.topos, never reads
+# ~/.topos/.env or ~/.topos/agents/*.token, and never records an answer's text.
 #
-# Statuses: pass | fail | blocked | skip. A check that could not be observed is
-# `blocked`, never `pass` (house rule, topos-install-qa).
+# Statuses: pass | fail | blocked | skip. Unobserved is `blocked`, never `pass`.
+# c8 (no secret in the transcripts, compared by hash) needs the node's secret
+# values; this agent never reads them, so c8 is ALWAYS blocked here — a person
+# runs qa-path-c.sh for it. The agent's best verdict is therefore INCOMPLETE
+# with c8 as the only blocked check.
 set -u
-
 # PATH may be EMPTY here (GUI-launched hosts, spike P0.5): no external command
 # before this line; the directory comes from parameter expansion + cd/pwd builtins.
 PATH="/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"; export PATH
@@ -23,6 +29,9 @@ CLIENT=claude-code
 SOURCE=""
 PLUGIN_ROOT=$(CDPATH= cd -- "$here/../../.." && pwd)
 OUT="${TOPOS_SETUP_OUT:-${TMPDIR:-/tmp}/topos-setup-checks.jsonl}"
+STATUS_TIMEOUT=20
+PROBE_TIMEOUT=120
+QUERY_TIMEOUT=${TOPOS_SETUP_QUERY_TIMEOUT:-180}
 while [ $# -gt 0 ]; do
     case "$1" in
         --client) CLIENT=${2:-}; shift 2 ;;
@@ -43,6 +52,9 @@ fi
 
 PY=$(topos_python) || { printf 'check-node.sh: no python3 found; cannot evaluate checks\n' >&2; exit 2; }
 : > "$OUT" || { printf 'check-node.sh: cannot write %s\n' "$OUT" >&2; exit 2; }
+WORK=$(mktemp -d 2>/dev/null || printf '%s' "${TMPDIR:-/tmp}/topos-setup.$$")
+mkdir -p "$WORK"
+trap 'rm -rf "$WORK"' EXIT
 
 # record <id> <status> <name> <detail>
 record() {
@@ -60,7 +72,7 @@ record() {
 # run_with_timeout <seconds> <outfile> <cmd...>  → exit status (124 on timeout)
 run_with_timeout() {
     _t=$1; _o=$2; shift 2
-    "$@" </dev/null >"$_o" 2>/dev/null &
+    "$@" </dev/null >"$_o" 2>&1 &
     _pid=$!
     _i=0
     while kill -0 "$_pid" 2>/dev/null && [ "$_i" -lt $((_t * 10)) ]; do
@@ -68,151 +80,175 @@ run_with_timeout() {
         _i=$((_i + 1))
     done
     if kill -0 "$_pid" 2>/dev/null; then
-        kill "$_pid" 2>/dev/null
-        sleep 0.2
-        kill -9 "$_pid" 2>/dev/null
+        kill "$_pid" 2>/dev/null; sleep 0.2; kill -9 "$_pid" 2>/dev/null
         wait "$_pid" 2>/dev/null
         return 124
     fi
     wait "$_pid"
 }
 
-printf '== Topos setup checks (%s, source %s) ==\n' "$CLIENT" "$SOURCE"
+# first_line <file> — at most 200 bytes of the first line, no newlines
+first_line() { head -c 200 "$1" 2>/dev/null | head -n 1 | tr -d '\r\n'; }
 
-# --- c1: the binary, by the fixed candidate list -------------------------
-WORK=$(mktemp -d 2>/dev/null || printf '%s' "${TMPDIR:-/tmp}/topos-setup.$$")
-mkdir -p "$WORK"
+printf '== Topos setup checks (%s / %s) ==\n' "$CLIENT" "$SOURCE"
+
+# ---- c1: binary by the candidate list, with the on-ramp commands ------------
 NODE=$(topos_resolve_node "$PLUGIN_ROOT/bin/topos-node") || NODE=""
-if [ -n "$NODE" ]; then
-    run_with_timeout 20 "$WORK/version" "$NODE" --version
-    VER=$(head -c 200 "$WORK/version" | tr -d '\r' | head -n 1)
-    record c1 pass "topos-node binary found" "$NODE${VER:+ ($VER)}"
+C1=fail
+if [ -z "$NODE" ]; then
+    record c1 fail "topos-node resolves by the candidate list" \
+        "no executable at \$TOPOS_NODE_BIN, ~/.local/bin, ~/.topos/runtime/bin, /opt/homebrew/bin or /usr/local/bin"
 else
-    record c1 fail "topos-node binary found" "none of: \$TOPOS_NODE_BIN, ~/.local/bin, ~/.topos/runtime/bin, /opt/homebrew/bin, /usr/local/bin"
-fi
-
-# --- status --json (one call feeds c2–c7) --------------------------------
-STATUS_OK=0
-if [ -n "$NODE" ]; then
-    run_with_timeout 20 "$WORK/status.json" "$NODE" status --json
-    rc=$?
-    if "$PY" -I -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d,dict) else 1)' "$WORK/status.json" 2>/dev/null; then
-        STATUS_OK=1
+    run_with_timeout 20 "$WORK/version" "$NODE" --version
+    VER=$(first_line "$WORK/version")
+    if run_with_timeout 20 "$WORK/pairhelp" "$NODE" pair --help; then
+        record c1 pass "topos-node resolves and has the on-ramp commands" "$NODE ($VER)"
+        C1=pass
     else
-        [ "$rc" = 124 ] && STATUS_WHY="status --json did not answer within 20 s" || STATUS_WHY="status --json exited $rc without JSON"
+        record c1 blocked "topos-node resolves and has the on-ramp commands" \
+            "$NODE ($VER) has no 'pair' subcommand: the on-ramp node release is not installed here (uv tool upgrade topos-node)"
+        C1=blocked
     fi
 fi
 
-if [ "$STATUS_OK" = 1 ]; then
-    "$PY" -I - "$WORK/status.json" "$CLIENT" "$SOURCE" "$OUT" <<'PY'
+if [ "$C1" = pass ]; then
+    # ---- c2: runs as a service (never started by this script) ----------------
+    run_with_timeout 20 "$WORK/svc" "$NODE" service status
+    SVC_RC=$?
+    SVC_OUT=$(head -c 200 "$WORK/svc" 2>/dev/null | tr '\r\n' '  ')
+    if [ "$SVC_RC" = 0 ]; then
+        record c2 pass "Node runs as a background service" "$SVC_OUT"
+    elif printf '%s' "$SVC_OUT" | grep -qi 'Topos.app\|managed'; then
+        record c2 skip "Node runs as a background service" "managed by Topos.app: $SVC_OUT"
+    elif [ "$SVC_RC" = 124 ]; then
+        record c2 blocked "Node runs as a background service" "service status did not answer within 20 s"
+    else
+        record c2 fail "Node runs as a background service" "service status exit $SVC_RC: $SVC_OUT"
+    fi
+
+    # ---- c3: paired, connected, owner key persisted (status --json, exit 0) --
+    run_with_timeout "$STATUS_TIMEOUT" "$WORK/status.json" "$NODE" status --json
+    STATUS_RC=$?
+    if [ "$STATUS_RC" = 124 ]; then
+        record c3 blocked "Node is paired, control plane connected, owner key persisted" "status --json did not answer within ${STATUS_TIMEOUT} s"
+        C3=blocked
+    else
+        C3=$("$PY" -I - "$WORK/status.json" "$STATUS_RC" <<'PY'
 import json, sys
-s = json.load(open(sys.argv[1], encoding="utf-8"))
-client, source, out = sys.argv[2], sys.argv[3], sys.argv[4]
-
-def rec(cid, status, name, detail):
-    with open(out, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps({"id": cid, "status": status, "name": name, "detail": detail[:400]}) + "\n")
-    tag = {"pass": "PASS ", "fail": "FAIL ", "blocked": "BLOCK", "skip": "SKIP "}[status]
-    print(f"  {tag}  {name} — {detail}")
-
-node = s.get("node") if isinstance(s.get("node"), dict) else {}
-running = node.get("running")
-if running is True:
-    rec("c2", "pass", "node running", f"pid {node.get('pid')} version {node.get('version')} socket={node.get('socket')}")
-elif running is False:
-    rec("c2", "fail", "node running", "status says the node is not running (exit 4) — service install or Topos.app")
-else:
-    rec("c2", "blocked", "node running", "status --json has no node.running field")
-
-paired = s.get("paired")
-if paired is True:
-    rec("c3", "pass", "paired with a Topos", f"topos_id present={bool(s.get('topos_id'))} user_id_present={s.get('user_id_present')}")
-elif paired is False:
-    rec("c3", "fail", "paired with a Topos", "not paired — run the pairing step (journey A6–A9)")
-else:
-    rec("c3", "blocked", "paired with a Topos", "status --json has no paired field")
-
-cp = s.get("control_plane")
-if cp == "connected":
-    rec("c4", "pass", "control plane connected", "connected")
-elif cp in ("rejected", "degraded", "offline"):
-    rec("c4", "fail", "control plane connected", f"control_plane={cp} — doctor names the fix; 'rejected' means the key was refused (exit 5)")
-elif running is False:
-    rec("c4", "blocked", "control plane connected", "node not running, so not observed")
-else:
-    rec("c4", "blocked", "control plane connected", f"control_plane={cp!r} (unknown)")
-
-okp = node.get("owner_key_persisted")
-if okp is True:
-    rec("c5", "pass", "owner key persisted by the node", "node.owner_key_persisted=true")
-elif okp is False:
-    rec("c5", "fail", "owner key persisted by the node", "the node has no persisted owner key — pairing did not finish")
-else:
-    rec("c5", "blocked", "owner key persisted by the node", "status --json has no node.owner_key_persisted field")
-
-sources = s.get("sources") if isinstance(s.get("sources"), list) else []
-mine = [x for x in sources if isinstance(x, dict) and x.get("source_id") == source]
-if mine and mine[0].get("enabled") is True and not mine[0].get("paused"):
-    m = mine[0]
-    rec("c6", "pass", f"source {source} enabled", f"last_sync_at={m.get('last_sync_at')} last_error={m.get('last_error')}")
-elif mine and mine[0].get("paused"):
-    rec("c6", "fail", f"source {source} enabled", "enabled but paused — resume it or leave it paused on purpose")
-elif mine:
-    rec("c6", "fail", f"source {source} enabled", "present but not enabled — journey A10")
-elif not sources:
-    rec("c6", "blocked", f"source {source} enabled", "status --json lists no sources (node may not know this source id yet)")
-else:
-    rec("c6", "fail", f"source {source} enabled", f"not listed; known: {', '.join(str(x.get('source_id')) for x in sources)[:200]}")
-
-agents = s.get("agents") if isinstance(s.get("agents"), list) else []
-me = [a for a in agents if isinstance(a, dict) and a.get("client") == client]
-if me and not me[0].get("revoked"):
-    rec("c7", "pass", f"agent {client} enrolled", f"enrolled_at={me[0].get('enrolled_at')}")
-elif me:
-    rec("c7", "fail", f"agent {client} enrolled", "enrolled but revoked (disconnected) — reconnect through the approve page")
-else:
-    rec("c7", "fail", f"agent {client} enrolled", "not enrolled — `topos-node agents add <client>` (journey B2) or pair --add-agent")
-
-if s.get("outdated") is True:
-    print(f"  note   node is outdated (latest {s.get('latest_version')}) — say 'update Topos'")
+rc = sys.argv[2]
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+    assert isinstance(d, dict)
+except Exception:
+    print("fail\tstatus --json is not JSON (exit %s)" % rc); raise SystemExit
+paired = d.get("paired"); cp = d.get("control_plane"); okp = (d.get("node") or {}).get("owner_key_persisted")
+ok = paired is True and cp == "connected" and okp is True and rc == "0"
+print(("pass" if ok else "fail") + "\tpaired=%s control_plane=%s owner_key_persisted=%s exit=%s" % (paired, cp, okp, rc))
 PY
+)
+        record c3 "${C3%%	*}" "Node is paired, control plane connected, owner key persisted" "${C3#*	}"
+        C3=${C3%%	*}
+    fi
+
+    # ---- c4: agent approved; label file 0600 in a 0700 folder (never read) ---
+    run_with_timeout 20 "$WORK/agents.json" "$NODE" agents list --json
+    LABEL="${HOME:-/}/.topos/agents/$CLIENT.token"
+    if [ "$(uname -s 2>/dev/null)" = Darwin ]; then
+        FMODE=$(stat -f '%Lp' "$LABEL" 2>/dev/null || echo missing); DMODE=$(stat -f '%Lp' "${HOME:-/}/.topos/agents" 2>/dev/null || echo missing)
+    else
+        FMODE=$(stat -c '%a' "$LABEL" 2>/dev/null || echo missing); DMODE=$(stat -c '%a' "${HOME:-/}/.topos/agents" 2>/dev/null || echo missing)
+    fi
+    C4=$("$PY" -I - "$WORK/agents.json" "$CLIENT" "$FMODE" "$DMODE" <<'PY'
+import json, sys
+c, fm, dm = sys.argv[2], sys.argv[3], sys.argv[4]
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    d = None
+rows = d if isinstance(d, list) else (d or {}).get("agents") or []
+row = next((r for r in rows if isinstance(r, dict) and r.get("client") == c), None)
+enrolled = row is not None and not row.get("revoked")
+modes_ok = fm == "600" and dm == "700"
+print(("pass" if enrolled and modes_ok else "fail") + "\tenrolled=%s revoked=%s label_mode=%s dir_mode=%s" % (row is not None, (row or {}).get("revoked"), fm, dm))
+PY
+)
+    record c4 "${C4%%	*}" "Agent $CLIENT is approved and its label file is 0600 in a 0700 folder" "${C4#*	}"
+
+    # ---- c5 / c7: through the plugin's own launcher -------------------------
+    PROBE="$here/mcp_probe.py"
+    if [ -x "$PLUGIN_ROOT/bin/topos-mcp" ]; then
+        set -- --launcher "$PLUGIN_ROOT/bin/topos-mcp"
+    else
+        set -- --node "$NODE"
+    fi
+    "$PY" -I "$PROBE" "$@" --client "$CLIENT" --timeout "$PROBE_TIMEOUT" context > "$WORK/ctx.json" 2>/dev/null
+    C5=$("$PY" -I - "$WORK/ctx.json" "$CLIENT" <<'PY'
+import json, sys
+c = sys.argv[2]
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("fail\tprobe printed no JSON"); raise SystemExit
+if d.get("error"):
+    print("fail\t" + d["error"]); raise SystemExit
+ctx = d.get("context") or {}
+ok = d.get("tools_match_contract") is True and ctx.get("contract_version") == 1 and ctx.get("paired") is True and ctx.get("agent_client") == c
+print(("pass" if ok else "fail") + "\ttools=%s contract_version=%s paired=%s agent=%s control_plane=%s" % (",".join(d.get("tools") or []), ctx.get("contract_version"), ctx.get("paired"), ctx.get("agent_client"), ctx.get("control_plane")))
+PY
+)
+    record c5 "${C5%%	*}" "Topos tools answer through the agent's own server (mcp_session_context, v1 tool set)" "${C5#*	}"
+
+    # ---- c6: source enabled, not paused, has synced -------------------------
+    if [ "$C3" = blocked ]; then
+        record c6 blocked "Source $SOURCE is enabled and has synced" "status --json did not answer"
+    else
+        C6=$("$PY" -I - "$WORK/status.json" "$SOURCE" <<'PY'
+import json, sys
+s = sys.argv[2]
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+    assert isinstance(d, dict)
+except Exception:
+    print("fail\tstatus --json is not JSON"); raise SystemExit
+row = next((r for r in d.get("sources") or [] if isinstance(r, dict) and r.get("source_id") == s), None)
+if row is None:
+    print("fail\tsource %s absent from status" % s); raise SystemExit
+ok = row.get("enabled") is True and not row.get("paused") and bool(row.get("last_sync_at"))
+print(("pass" if ok else "fail") + "\tenabled=%s paused=%s last_sync_at=%s last_error=%s" % (row.get("enabled"), row.get("paused"), row.get("last_sync_at"), row.get("last_error")))
+PY
+)
+        record c6 "${C6%%	*}" "Source $SOURCE is enabled and has synced" "${C6#*	}"
+    fi
+
+    # ---- c7: the first answer, shape only -----------------------------------
+    if [ "${C5%%	*}" = pass ]; then
+        "$PY" -I "$PROBE" "$@" --client "$CLIENT" --timeout "$PROBE_TIMEOUT" --query-timeout "$QUERY_TIMEOUT" query > "$WORK/q.json" 2>/dev/null
+        C7=$("$PY" -I - "$WORK/q.json" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("fail\tprobe printed no JSON"); raise SystemExit
+if d.get("error"):
+    print("fail\t" + d["error"]); raise SystemExit
+q = d.get("query") or {}
+ok = q.get("public_result_present") is True and not q.get("refused")
+print(("pass" if ok else "fail") + "\tturn_outcome=%s public_result=%s (%s) — answer text deliberately not recorded" % (q.get("turn_outcome"), q.get("public_result_present"), q.get("public_result_kind")))
+PY
+)
+        record c7 "${C7%%	*}" "First answer comes from the person's own coding history (ai_coding_sessions:read)" "${C7#*	}"
+    else
+        record c7 blocked "First answer comes from the person's own coding history (ai_coding_sessions:read)" "c5 did not pass"
+    fi
 else
-    why="${STATUS_WHY:-binary missing, so not observed}"
-    record c2 blocked "node running" "$why"
-    record c3 blocked "paired with a Topos" "$why"
-    record c4 blocked "control plane connected" "$why"
-    record c5 blocked "owner key persisted by the node" "$why"
-    record c6 blocked "source $SOURCE enabled" "$why"
-    record c7 blocked "agent $CLIENT enrolled" "$why"
+    for id in c2 c3 c4 c5 c6 c7; do
+        record "$id" blocked "(not observed)" "c1 did not pass: $C1"
+    done
 fi
 
-# --- c8: the turn-end hook ---------------------------------------------------
-case "$CLIENT" in
-    claude-code)
-        f="$PLUGIN_ROOT/hooks/hooks.json"
-        if [ -f "$f" ] && "$PY" -I -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if "Stop" in d.get("hooks",{}) else 1)' "$f" 2>/dev/null; then
-            record c8 pass "turn-end hook registered" "hooks/hooks.json declares Stop (Claude Code registers plugin hooks on load)"
-        else
-            record c8 fail "turn-end hook registered" "hooks/hooks.json missing or without a Stop hook at $PLUGIN_ROOT"
-        fi ;;
-    cursor)
-        f="$PLUGIN_ROOT/hooks/cursor.hooks.json"
-        if [ -f "$f" ] && "$PY" -I -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if "stop" in d.get("hooks",{}) else 1)' "$f" 2>/dev/null; then
-            record c8 pass "turn-end hook registered" "hooks/cursor.hooks.json declares stop (needs transcripts enabled in Cursor to carry a file)"
-        else
-            record c8 fail "turn-end hook registered" "hooks/cursor.hooks.json missing or without a stop hook at $PLUGIN_ROOT"
-        fi ;;
-    codex)
-        f="$PLUGIN_ROOT/hooks/codex.hooks.json"
-        if [ -f "$f" ] && "$PY" -I -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get("hooks")=={} else 1)' "$f" 2>/dev/null; then
-            record c8 pass "no hook by design (Codex v1)" "hooks/codex.hooks.json is empty; the node's hourly sync is the guarantee"
-        else
-            record c8 fail "no hook by design (Codex v1)" "hooks/codex.hooks.json missing or not empty at $PLUGIN_ROOT"
-        fi ;;
-    *)
-        record c8 skip "turn-end hook registered" "no hook contract for client $CLIENT" ;;
-esac
+# ---- c8: no secret in the transcripts, by hash — needs the secrets; never here
+record c8 blocked "No node secret appears in the session transcripts or shell history (compared by hash)" \
+    "needs the node's secret values to compare; this agent never reads ~/.topos/.env or ~/.topos/agents/*.token — a person runs topos-install-qa scripts/qa-path-c.sh"
 
-rm -rf "$WORK" 2>/dev/null
 printf 'checks written to %s\n' "$OUT"
 exit 0

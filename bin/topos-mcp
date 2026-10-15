@@ -27,6 +27,9 @@ topos_sane_path
 CLIENT=$(topos_arg_client "$@")
 [ -n "$CLIENT" ] || CLIENT=claude-code
 
+# The exact sentences of CONTRACTS.md §1.4. The third one is answered by the real
+# server (a revoked label); it is written here so the set stays in one place:
+#   This agent was disconnected from Topos.
 MSG_NOT_SET_UP='This agent isn'"'"'t connected to Topos yet — say "set up Topos".'
 MSG_NOT_RUNNING='Topos isn'"'"'t running — say "start Topos".'
 

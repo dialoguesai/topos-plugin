@@ -55,12 +55,15 @@ through five tools: `mcp__plugin_topos_topos__mcp_session_context`,
 
 ## When a tool answers with a sentence instead of data
 
-- "This agent isn't connected to Topos yet — say "set up Topos"" → run the `topos-setup`
-  skill (ask first; it installs nothing without a yes).
-- "Topos isn't running — say "start Topos"" → `topos-setup`'s journey B: the node exists
+These three sentences are exact (CONTRACTS §1.4); match them as written:
+
+- `This agent isn't connected to Topos yet — say "set up Topos".` → run the `topos-setup`
+  skill (ask first; it installs nothing without a yes). The plugin's stand-in server says
+  this until the node exists; the real server says it when the agent's label is missing.
+- `Topos isn't running — say "start Topos".` → `topos-setup`'s journey B: the node exists
   but is stopped; `topos-node status --json` says why; `service install` or Topos.app
-  starts it. Never start a second node.
-- "This agent was disconnected from Topos." → the user revoked this tool. Reconnecting goes
+  starts it. Never start a second node. No TCP attempt is ever made.
+- `This agent was disconnected from Topos.` → the user revoked this tool. Reconnecting goes
   through the approve page again (`topos-node agents add <client>`), only if the user asks.
 
 ## What leaves the computer

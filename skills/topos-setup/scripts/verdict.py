@@ -63,11 +63,13 @@ def main() -> int:
             continue
         if isinstance(obj, dict):
             checks.append(obj)
-    # A client name recorded in the checks wins over the flag.
+    # A client name recorded in the checks (c4's name) wins over the flag.
+    import re
+
     for c in checks:
-        n = str(c.get("name", ""))
-        if n.startswith("agent ") and n.endswith(" enrolled"):
-            client = n[len("agent "):-len(" enrolled")]
+        m = re.match(r"Agent (\S+) is approved", str(c.get("name", "")))
+        if m:
+            client = m.group(1)
             break
 
     v, why = verdict(checks)
