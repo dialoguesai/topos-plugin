@@ -1,0 +1,52 @@
+name: Validate plugin
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Shell syntax
+        run: |
+          for f in bin/* lib/*.sh skills/*/scripts/*.sh scripts/publish.sh; do sh -n "$f"; done
+
+      - name: Generated artifacts are current, versions in sync, manifests parse, schema check
+        run: chmod +x ./scripts/publish.sh && ./scripts/publish.sh --check
+
+      - name: Agent Plugins schema check with the jsonschema package
+        run: pip install --quiet jsonschema && python3 -I scripts/check_schema.py --jsonschema
+
+      - name: Version bumped when published content changed (pull requests)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 -I scripts/plugin_versions.py check-bump "$BASE_SHA"
+
+      - name: Stand-in MCP server answers initialize / tools/list / tools/call with no node
+        run: sh tests/test_fallback_mcp.sh
+
+      - name: Stop hook exits within 1.5 s and never blocks
+        run: sh tests/test_hook_budget.sh
+
+      - name: claude plugin validate (when the Claude Code CLI is available)
+        run: |
+          if command -v claude >/dev/null 2>&1; then
+            claude plugin validate . --strict
+          elif command -v npm >/dev/null 2>&1; then
+            npm install -g @anthropic-ai/claude-code >/dev/null 2>&1 && claude plugin validate . --strict || echo "claude CLI unavailable; skipped"
+          else
+            echo "claude CLI unavailable; skipped"
+          fi
