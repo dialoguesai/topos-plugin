@@ -107,13 +107,15 @@ a key in the chat.
 
 1. `topos-node status --json` (through the plugin's `topos-node` wrapper, so PATH does not
    matter). Say which binary it found and the version.
-2. Run `topos-node pair --add-agent --client <client> --json`. Show the link and code;
-   the user approves **"add an AI tool"** in their browser. No Topos is created and no
-   node key moves. After approval, run `topos-node agents add <client> --approved` to
-   consume that approval and create the named agent's label. Pairing alone does not
-   enroll the agent. If pairing returns 404, an existing account needs no manual key
-   entry: ask the user to run `topos-node agents add <client>` in their own terminal and
-   confirm its prompt. Never answer that terminal prompt on the user's behalf.
+2. On macOS, run `topos-node agents add <client> --open-terminal --json`. It opens
+   the normal approval prompt in Terminal: the person confirms there and returns to
+   this chat, without typing a command. `approval_pending` means only that the window
+   opened. Wait until `agents list --json` reports this client with `revoked: false`;
+   never answer the terminal prompt yourself. No node key moves and no Topos is created.
+   On other platforms, use `topos-node pair --add-agent --client <client> --json`, show
+   the link and code, and wait for the person's browser approval. Then run
+   `topos-node agents add <client> --approved` to consume that approval. Pairing alone
+   does not enroll the agent. A revoked agent still needs fresh browser approval.
 3. Preview, then enable the source (A5, A10), then the reload (A11), then the verdict and
    the Aha.
 
