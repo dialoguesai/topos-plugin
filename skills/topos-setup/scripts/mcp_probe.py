@@ -148,7 +148,7 @@ def main() -> int:
             "scopes": sorted(s.get("scope_id", s) if isinstance(s, dict) else s for s in (ctx.get("scopes") or [])),
         }
         if args.mode == "query":
-            res = unwrap(io.request("tools/call", {"name": "query_scope", "arguments": {"scope_id": "ai_coding_sessions:read", "intent": FIRST_QUESTION, "access_mode": "summary"}}, args.query_timeout))
+            res = unwrap(io.request("tools/call", {"name": "query_scope", "arguments": {"scope_id": "ai_coding_sessions:read", "intent": FIRST_QUESTION, "access_mode": "raw"}}, args.query_timeout))
             public = res.get("public_result")
             outcome = str(res.get("turn_outcome") or "")
             out["query"] = {  # shape only; the answer text never reaches this report
