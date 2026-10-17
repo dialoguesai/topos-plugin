@@ -107,13 +107,20 @@ a key in the chat.
 
 1. `topos-node status --json` (through the plugin's `topos-node` wrapper, so PATH does not
    matter). Say which binary it found and the version.
-2. `topos-node agents add <client>` — opens the approve page in **"add an AI tool"** mode
-   and prints a code. No key moves and no Topos is created. The user types the code and
-   approves (human-only). If the command asks for a TTY confirmation it cannot get in this
-   session, hand the user the exact command to run in their own terminal and record c7 as
-   blocked.
+2. Run `topos-node pair --add-agent --client <client> --json`. Show the link and code;
+   the user approves **"add an AI tool"** in their browser. No Topos is created and no
+   node key moves. After approval, run `topos-node agents add <client> --approved` to
+   consume that approval and create the named agent's label. Pairing alone does not
+   enroll the agent. If pairing returns 404, an existing account needs no manual key
+   entry: ask the user to run `topos-node agents add <client>` in their own terminal and
+   confirm its prompt. Never answer that terminal prompt on the user's behalf.
 3. Preview, then enable the source (A5, A10), then the reload (A11), then the verdict and
    the Aha.
+
+`sources sync` reports `queued` or `already_running` and a job id when it accepts work.
+That is not a completed sync. Verify the source's successful `last_sync_at` and checkpoint
+before claiming collection works. Model processing runs as separate durable background
+work; it can continue after collection completes.
 
 ## Per client
 
