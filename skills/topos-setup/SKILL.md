@@ -41,6 +41,19 @@ the directory this SKILL.md lives in, two levels up).
    as `blocked` until observed; `blocked` makes the verdict `INCOMPLETE`, never
    `GOOD TO GO`.
 
+## The one command (topos-node with `setup`; check `topos-node setup --help`)
+
+When `topos-node setup --help` works, do not walk the journeys below by hand. Follow the
+plugin's `/topos:setup` command (`commands/setup.md`): `topos-node setup --client <client>
+--plan --json` changes nothing and lists the remaining steps with the preview counts; ask the
+person ONE itemized yes; then re-run `topos-node setup --client <client> --json` until it
+exits 0, relaying each `human.say` word for word (exit 2). It pairs before it starts the node,
+asks "is that you?" before anything reads the account (re-run with `--confirm-account` only
+after the person's yes), starts Topos (Topos.app, else the login service), connects this agent
+and enables its session history. Then run the checks in step 0 for the verdict, and the Aha.
+
+The journeys below are the fallback for a Topos that predates `setup`.
+
 ## Step 0 — find out where this computer stands
 
 Run the checks first; they decide the journey.

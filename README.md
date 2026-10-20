@@ -43,7 +43,9 @@ claude plugin marketplace add dialoguesai/topos-plugin
 claude plugin install topos@topos        # then /reload-plugins in an open session
 ```
 
-Then say **"set up Topos"**. After setup, terminal users run `/mcp reconnect all`
+Then type **`/topos:setup`** (or say "set up Topos"). It asks you once, runs
+`topos-node setup` until everything is done, and stops only for the steps that are yours:
+approving a code in the browser, "is that you?", and approving Claude Code once. After setup, terminal users run `/mcp reconnect all`
 (v2.1.284+) if the Topos tools have not attached; the desktop app and VS Code pick the
 server up in the next session. Plugin auto-update is off by default for third-party
 marketplaces: enable it under `/plugin → Marketplaces`, or run

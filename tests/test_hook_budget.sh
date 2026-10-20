@@ -79,6 +79,18 @@ printf '#!/bin/sh\nsleep 3\necho "{}"\n' > "$FAKE_HOME/.local/bin/topos-node"
 chmod +x "$FAKE_HOME/.local/bin/topos-node"
 timed "topos-health (slow status --json)" 1.5 "$FAKE_HOME/empty.json" "$ROOT/bin/topos-health" --client claude-code
 [ -s "$FAKE_HOME/out" ] && { echo "  FAIL printed while status was still running: $(cat "$FAKE_HOME/out")"; fail=1; } || echo "  ok   said nothing while status was still running"
+# 4b. Status is slow on a busy node (1-5 s measured on a live one). An earlier
+# finished answer under a day old still speaks, or the hook is silent forever.
+DATA="$FAKE_HOME/.cache/topos-plugin"; mkdir -p "$DATA"
+printf '{"node":{"running":true},"paired":true,"agents":[],"outdated":false}\n' > "$DATA/status.json"
+timed "topos-health (slow status, earlier answer)" 1.5 "$FAKE_HOME/empty.json" "$ROOT/bin/topos-health" --client claude-code
+grep -q "isn.t connected to Topos yet" "$FAKE_HOME/out" && echo "  ok   spoke from the earlier answer: $(cat "$FAKE_HOME/out")" || { echo "  FAIL expected the not-enrolled line from the earlier answer, got: $(cat "$FAKE_HOME/out")"; fail=1; }
+sleep 3.2  # let the slow background status finish and replace the earlier answer
+touch -t 202001010000 "$DATA/status.json"
+timed "topos-health (slow status, stale earlier answer)" 1.5 "$FAKE_HOME/empty.json" "$ROOT/bin/topos-health" --client claude-code
+[ -s "$FAKE_HOME/out" ] && { echo "  FAIL spoke from an answer older than a day: $(cat "$FAKE_HOME/out")"; fail=1; } || echo "  ok   ignored an answer older than a day"
+sleep 3.2
+rm -rf "$DATA"
 printf '#!/bin/sh\necho "{\\"node\\":{\\"running\\":true},\\"paired\\":true,\\"agents\\":[],\\"outdated\\":true}"\n' > "$FAKE_HOME/.local/bin/topos-node"
 timed "topos-health (fast status, agent missing)" 1.5 "$FAKE_HOME/empty.json" "$ROOT/bin/topos-health" --client claude-code
 grep -q "isn.t connected to Topos yet" "$FAKE_HOME/out" && echo "  ok   said: $(cat "$FAKE_HOME/out")" || { echo "  FAIL expected the not-enrolled line, got: $(cat "$FAKE_HOME/out")"; fail=1; }

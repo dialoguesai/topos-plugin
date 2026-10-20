@@ -11,8 +11,10 @@
 #   agent missing → This agent isn't connected to Topos yet — say "set up Topos".
 #   outdated      → Topos is out of date — say "update Topos".
 #   all good      → nothing (no noise every session)
-# If status has not answered in time the hook says nothing; the background job
-# still finishes and the next session reads it. Nothing here is a secret:
+# If status has not answered in time the hook speaks from the last FINISHED
+# answer when it is under a day old (status takes 1-5 s on a busy node, so a
+# hook that waited only for a fresh answer was silent every session), else it
+# says nothing; the background job still finishes for the next session. Nothing here is a secret:
 # `status --json` carries none by contract (CONTRACTS.md §4).
 set -u
 # PATH may be EMPTY here (GUI-launched hosts, spike P0.5): no external command
@@ -50,11 +52,18 @@ while [ -e "$TMP" ] && [ "$tick" -lt 10 ]; do
     sleep 0.1
     tick=$((tick + 1))
 done
-[ -e "$TMP" ] && exit 0        # still running: say nothing this time
+FRESH=1
+[ -e "$TMP" ] && FRESH=0       # still running: fall back to the last finished answer
 [ -s "$DONE" ] || exit 0
 
-"$PY" -I - "$DONE" "$CLIENT" <<'PY' 2>/dev/null
-import json, sys
+"$PY" -I - "$DONE" "$CLIENT" "$FRESH" <<'PY' 2>/dev/null
+import json, os, sys, time
+if sys.argv[3] != "1":
+    try:
+        if time.time() - os.path.getmtime(sys.argv[1]) > 86400:
+            sys.exit(0)        # an answer older than a day says nothing reliable
+    except OSError:
+        sys.exit(0)
 try:
     s = json.load(open(sys.argv[1], encoding="utf-8"))
 except Exception:
