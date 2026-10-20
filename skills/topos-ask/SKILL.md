@@ -26,7 +26,8 @@ through five tools: `mcp__plugin_topos_topos__mcp_session_context`,
    user's own words and the assistant's replies with no embeddings and no local model
    (spike P0.7) — then **`"summary"`** for the derived view, then `"inference"` only when
    the question is about patterns or goals. Pass `now` when the question is relative in
-   time. Reuse `query_session_id` from the result for follow-ups.
+   time. Reuse `query_session_id` from the result for follow-ups. Every result is
+   **paged to a byte budget**: read `data.page` before the rows (see Paging below).
 4. **`aggregate_scope`** for counts and groupings ("how many sessions per project last
    month"). Do not count by paging `query_scope`.
 5. **`sources_status`** when the answer looks thin: an unsynced or paused source explains
@@ -43,6 +44,34 @@ through five tools: `mcp__plugin_topos_topos__mcp_session_context`,
   beliefs) is the owner's dial, not an error.
 - Quote the user's own words when it helps; keep other people's messages to what the
   question needs.
+
+## Paging (every `query_scope` result)
+
+The node keeps a `query_scope` result under a 24 KB byte budget so the client can show
+it inline (a raw week of coding sessions is ~150 KB otherwise). `data.page` says what
+this call holds:
+
+- `page.content == "full"` and `page.next == null`: everything the node returned is
+  here, rows with their full `content`. Nothing more to fetch. (No `page` at all: an
+  older node; the result is whole.)
+- `page.content == "preview"`: rows carry `content_preview` (the first 500 chars),
+  `content_chars` and `content_truncated` instead of `content`; `page.returned` of
+  `page.total` rows are in this call. For the next rows call `query_scope` again with
+  the same `scope_id` and `intent` plus **`cursor=page.next`**, until `next` is null.
+  Turning a page answers from the server's memory and does not re-run the query, so
+  page freely; do not re-ask the question to see more rows.
+- **One row in full:** `query_scope(scope_id, intent, record_id=<row's record_id>,
+  cursor=page.result_id)`. A row bigger than the budget comes in slices:
+  `page.content == "partial"`, `page.content_range` says which characters, and
+  `page.next` continues it with the same `record_id`.
+- `page.node_row_cap` (and `public_result.truncated`) mean the node itself stopped
+  at that many rows; more may exist, and an absence in a capped result is not
+  evidence something did not happen. Narrow the question (`now`, a subject in
+  `retrieval_text`) or use `aggregate_scope` for counts.
+- Cursors expire after 15 minutes, and the moment the agent is disconnected.
+  `That result has expired — ask the question again.` means exactly that.
+- Answer from previews when they settle the question; read a row in full only when
+  the exact words matter. Never page to count (use `aggregate_scope`).
 
 ## Never
 
