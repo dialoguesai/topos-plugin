@@ -13,6 +13,17 @@ Plugin name `topos`, marketplace `topos`, Claude Code install id `topos@topos`. 
 follows [Agent Plugins 1.0.0](https://agent-plugins.org) (`plugin.json`, `skills/`,
 `mcp.json`) with each client's own manifest beside it.
 
+## Requirements
+
+- A Topos node **1.5.15 or later** for the one-command setup (`topos-node setup`). On an
+  older node the setup skill says so and offers to update it; everything else works.
+- What each client does after setup: Claude Code syncs a session the moment it ends
+  (`Stop` hook) and hourly; Cursor syncs at `stop` when transcripts are on, and hourly;
+  Codex syncs hourly (no hooks by design). The node reads the transcript files locally.
+- The agent connects as your own agent on the node's local socket, approved once by you:
+  it can read your Topos through five tools and change nothing. Revoke it any time with
+  `topos-node agents revoke <client>`.
+
 ## Install
 
 No plugin yet, or a client where the plugin is awkward to install first (Codex Desktop,
@@ -69,16 +80,19 @@ per-tool timeout of 60 s on a slow question; the setup skill tells you if that b
 
 ### Cursor
 
-Cursor has no plugin-install command. Clone into the local plugins folder, then reload:
+Cursor's plugin list shows **topos** by Dialogues from this repository's marketplace file;
+install it there when it is offered. Otherwise clone into the local plugins folder, then
+reload:
 
 ```bash
 git clone https://github.com/dialoguesai/topos-plugin ~/.cursor/plugins/local/topos
 ```
 
 Run **Developer: Reload Window**, then enable the `topos` MCP server when Cursor asks.
-The `stop` hook carries a transcript only when transcripts are enabled in Cursor's
-settings; otherwise the hourly sync does the work. Enterprise workspaces block local
-plugins by default.
+Keep one install, not both. Say "set up Topos" in a chat: Cursor's agent runs the same
+`topos-node setup` journey and stops for the one approval that is yours. The `stop` hook
+carries a transcript only when transcripts are enabled in Cursor's settings; otherwise the
+hourly sync does the work. Enterprise workspaces block local plugins by default.
 
 ### Gemini CLI (untested)
 

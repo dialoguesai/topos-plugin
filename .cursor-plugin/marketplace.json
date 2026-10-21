@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Topos for coding agents: one plugin that sets up a Topos node, answers questions from your own data, and keeps your coding sessions as a source.",
-    "version": "0.2.2"
+    "version": "1.0.0"
   },
   "plugins": [
     {
