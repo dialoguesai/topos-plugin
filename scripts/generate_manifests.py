@@ -42,6 +42,7 @@ GEMINI_MANIFEST = ROOT / "gemini-extension.json"
 
 AGENT_PLUGINS_MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
 META_KEYS = ("description", "version", "author", "homepage", "repository", "license", "keywords")
+LOGO = "assets/logo.png"
 
 
 def load(path: Path) -> dict:
@@ -86,6 +87,9 @@ def build_cursor_manifest(src: dict) -> dict:
             m[k] = src[k]
     if isinstance(m.get("author"), dict):
         m["author"] = {k: v for k, v in m["author"].items() if k in ("name", "email")}
+    # The mark Cursor shows in its plugin list (docs: a path relative to the plugin folder; it is read from
+    # raw.githubusercontent.com, so the file must be committed). The other clients have no logo field.
+    m["logo"] = LOGO
     m["skills"] = "./skills"
     m["mcpServers"] = "./mcp.cursor.json"
     m["hooks"] = "./hooks/cursor.hooks.json"

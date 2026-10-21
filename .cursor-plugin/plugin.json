@@ -1,7 +1,7 @@
 {
   "name": "topos",
   "description": "Use Cursor as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Cursor sessions as a source.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "Dialogues"
   },
@@ -19,6 +19,7 @@
     "codex",
     "cursor"
   ],
+  "logo": "assets/logo.png",
   "skills": "./skills",
   "mcpServers": "./mcp.cursor.json",
   "hooks": "./hooks/cursor.hooks.json"

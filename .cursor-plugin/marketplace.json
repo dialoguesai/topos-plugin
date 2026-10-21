@@ -5,12 +5,13 @@
   },
   "metadata": {
     "description": "Topos for coding agents: one plugin that sets up a Topos node, answers questions from your own data, and keeps your coding sessions as a source.",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "plugins": [
     {
       "name": "topos",
       "source": ".",
+      "logo": "assets/logo.png",
       "description": "Use Cursor as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Cursor sessions as a source."
     }
   ]

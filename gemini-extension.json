@@ -1,6 +1,6 @@
 {
   "name": "topos",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Use Gemini CLI as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Gemini CLI sessions as a source. (Gemini CLI manifest generated from the Claude Code plugin; untested.)",
   "contextFileName": "agentsmd/AGENTS.md",
   "mcpServers": {
