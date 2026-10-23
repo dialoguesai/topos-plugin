@@ -21,7 +21,8 @@ jobs:
 
       - name: Shell syntax
         run: |
-          for f in bin/* lib/*.sh skills/*/scripts/*.sh scripts/publish.sh; do sh -n "$f"; done
+          for f in bin/* lib/*.sh skills/*/scripts/*.sh; do sh -n "$f"; done
+          bash -n scripts/publish.sh
 
       - name: Generated artifacts are current, versions in sync, manifests parse, schema check
         run: chmod +x ./scripts/publish.sh && ./scripts/publish.sh --check

@@ -75,9 +75,10 @@ run_check() {
   "$PY" -I scripts/generate_manifests.py --check
   "$PY" -I scripts/plugin_versions.py check
   "$PY" -I scripts/check_schema.py
-  for f in bin/* lib/*.sh skills/*/scripts/*.sh scripts/publish.sh; do
+  for f in bin/* lib/*.sh skills/*/scripts/*.sh; do
     sh -n "$f"
   done
+  bash -n scripts/publish.sh
   echo "All generated artifacts are up to date."
 }
 
