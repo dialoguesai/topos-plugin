@@ -95,6 +95,11 @@ for the actual deployment rather than assuming that URL is universal.
   an explicitly configured developer key. Do not add dummy sources or write scopes
   merely to satisfy the wizard, and do not generate or copy a new credential without
   the authorization required by the host.
+  Before asking the user to fetch a developer key again, check the known setup records
+  and relevant local configuration files as well as the process environment. A key in
+  the project's `.env` may not be exported. Parse only the needed setting without sourcing
+  the file or printing secrets; do not search unrelated credential stores. Create the
+  app inactive, read back its approved policy, then activate and verify it when authorized.
 - **Audience:** inspect the client's assigned scopes/mappers and the server's expected
   audience. If an audience mapper is needed, target the dedicated client and only the
   required token surfaces. Prepare the exact change for any required approval. An absent
