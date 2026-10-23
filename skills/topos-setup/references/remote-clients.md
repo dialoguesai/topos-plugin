@@ -88,6 +88,13 @@ for the actual deployment rather than assuming that URL is universal.
   the user's authenticated Sheaf registration UI. Do not substitute an operator credential,
   append the client to a global allowlist, or reuse a first-party client as a shortcut.
   Separate registering the application from granting access to a user's data.
+  Check the registration UI's actual result: the Sheaf wizard observed on 2026-10-22
+  accepted "Uses data (read-only)" but still required source tables and write scopes
+  before publication. A source draft is not an admitted runtime app. If this occurs,
+  leave the draft inactive and use the supported developer app-registration API with
+  an explicitly configured developer key. Do not add dummy sources or write scopes
+  merely to satisfy the wizard, and do not generate or copy a new credential without
+  the authorization required by the host.
 - **Audience:** inspect the client's assigned scopes/mappers and the server's expected
   audience. If an audience mapper is needed, target the dedicated client and only the
   required token surfaces. Prepare the exact change for any required approval. An absent
