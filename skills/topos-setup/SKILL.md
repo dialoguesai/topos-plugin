@@ -1,12 +1,30 @@
 ---
 name: topos-setup
-description: Set up Topos for this coding agent — find or install the Topos node on this computer, connect it to the user's account in the browser, turn on this tool's own session history as a source, and end with one verdict (GOOD TO GO / INCOMPLETE / FAILED). Use when the user says "set up Topos", "connect Topos", "install Topos", "start Topos", "update Topos", "is Topos working", or when a Topos tool answers "isn't connected to Topos yet" or "Topos isn't running".
+description: Set up Topos for the requested AI client. For local coding agents, find or install the node, pair the account, connect the agent and enable approved session capture. For Claude web or cloud tasks, guide the separate remote connector and OAuth setup. Use for Topos installation, connection, updates or setup failures.
 allowed-tools: Bash(topos-node --version) Bash(topos-node status *) Bash(topos-node doctor *) Bash(topos-node agents list *) Bash(topos-node sources preview *) Bash(sh ${CLAUDE_PLUGIN_ROOT}/skills/topos-setup/scripts/check-node.sh *) Bash(python3 -I ${CLAUDE_PLUGIN_ROOT}/skills/topos-setup/scripts/verdict.py *)
 ---
 
 # Set up Topos
 
-**What this produces:** a Topos node running on this computer, connected to the user's
+## Choose the target before running setup
+
+Use the client the user requested, not automatically the agent performing setup.
+Infer it from the request and existing configuration; clarify only if ambiguous.
+
+- **Local Claude Code, Codex or Cursor:** follow the local setup below.
+- **Claude web / a cloud scheduled task, or a desktop-config connection missing on web:**
+  read [Remote client setup](references/remote-clients.md). Do not run local enrollment,
+  source capture or the local first-answer check as a substitute for that connection.
+- **Both:** track them separately. A working local client does not prove remote access.
+
+Account pairing, node availability, client read permission and source ingestion are
+separate setup steps. Reuse an existing node/account and record which steps the user
+requested. A read-only client needs no new data source. A request for additional data
+sources is separate from enabling this coding tool's history; use the supported source
+catalog/preview and confirm the selected data, backfill and exclusions before enabling it.
+If the requested source needs development, report that gap rather than inventing a source ID.
+
+**Local setup produces:** a Topos node running on this computer, connected to the user's
 account, this agent enrolled as its own named client, this tool's session history turned
 on as a source, and the Topos tools answering in this session — reported as one verdict
 line the user can trust.

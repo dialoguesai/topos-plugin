@@ -88,7 +88,8 @@ def build_cursor_manifest(src: dict) -> dict:
     if isinstance(m.get("author"), dict):
         m["author"] = {k: v for k, v in m["author"].items() if k in ("name", "email")}
     # The mark Cursor shows in its plugin list (docs: a path relative to the plugin folder; it is read from
-    # raw.githubusercontent.com, so the file must be committed). The other clients have no logo field.
+    # raw.githubusercontent.com, so the file must be committed). OpenAI's logo/composerIcon
+    # live in its interface; Anthropic's directory icon lives in the Claude manifest.
     m["logo"] = LOGO
     m["skills"] = "./skills"
     m["mcpServers"] = "./mcp.cursor.json"

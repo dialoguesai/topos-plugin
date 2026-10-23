@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "topos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Use Claude Code, Codex or Cursor as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your coding sessions as a source.",
   "author": {
     "name": "Dialogues",
@@ -27,6 +27,8 @@
       "onboardingSkill": "./skills/topos-setup/SKILL.md",
       "interface": {
         "displayName": "Topos",
+        "logo": "./assets/logo.png",
+        "composerIcon": "./assets/logo.png",
         "shortDescription": "Answer questions from your own data, and keep your Codex sessions as a source.",
         "longDescription": "Topos runs on your computer and holds your own data: messages, mail, chat history and, with this plugin, your coding sessions. Say \"set up Topos\" and the agent installs or finds the node, connects it to your account in the browser, and turns on your session history. Then ask questions like \"What have I been building this week, and where did I get stuck?\". Transcript files never leave the computer; answers go to the AI company behind this tool.",
         "developerName": "Dialogues",

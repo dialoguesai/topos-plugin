@@ -1,7 +1,8 @@
 {
   "name": "topos",
   "displayName": "Topos",
-  "version": "1.0.0",
+  "icon": "./assets/logo.png",
+  "version": "1.0.1",
   "description": "Use Claude Code as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Claude Code sessions as a source.",
   "author": {
     "name": "Dialogues",
