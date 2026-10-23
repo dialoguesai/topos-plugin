@@ -30,6 +30,12 @@ are distinct actions; follow the host's approval policy at each boundary and reu
 authorization when it covers the exact action. Do not interpret setup consent as consent
 to broader data access, a different account or distribution.
 
+If the existing connector exposes no edit control, current Claude documentation requires
+removing and re-adding a custom connector to change its configuration. Preserve its
+endpoint, name, authentication settings and task dependencies first; prepare the replacement
+and obtain any required removal/replacement approval. Replace it once using the verified
+settings, rather than creating duplicates or repeating registration attempts blindly.
+
 Claude offers OAuth client registration automatically, its published identity (CIMD), or
 a pre-registered client ID. Choose based on the deployed authorization server's support,
 not the option's label. Do not assume CIMD works merely because Claude offers it. For a
