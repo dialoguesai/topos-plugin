@@ -68,6 +68,45 @@ If Claude says it **couldn't register with the sign-in service**:
    recreate connectors or clients repeatedly. If administrative access is unavailable,
    give the responsible person the precise configuration/log request and stop that branch.
 
+## Diagnose rejection after OAuth registration
+
+A saved OAuth client and correct redirect do not establish permission to call Topos.
+Inspect the deployed gateway's requirements before changing more client settings. Local
+checkout code may differ from production. Keep diagnostic output to configuration,
+booleans and redacted error references; never print tokens, authorization codes or registry
+credentials. Do not send a bearer to an online token decoder.
+
+On the deployment inspected on 2026-10-22, an outside client's token passed through
+separate checks for active app admission, the configured answer-service audience, and
+live token introspection. Keycloak held the `claude` OAuth client, but the Topos registry
+had no matching app record, so the deployed admission check returned false. The required
+audience was configured as `https://cp.logu3s.com/permissions-beta/v2`; discover the value
+for the actual deployment rather than assuming that URL is universal.
+
+- **App identity:** the OAuth client identity must match the admitted app identity.
+  Check for an existing record before creating one. Use the supported developer API or
+  the user's authenticated Sheaf registration UI. Do not substitute an operator credential,
+  append the client to a global allowlist, or reuse a first-party client as a shortcut.
+  Separate registering the application from granting access to a user's data.
+- **Audience:** inspect the client's assigned scopes/mappers and the server's expected
+  audience. If an audience mapper is needed, target the dedicated client and only the
+  required token surfaces. Prepare the exact change for any required approval. An absent
+  mapper is not direct evidence of the claims in a particular token. Obtain a fresh token
+  through the normal sign-in flow after a mapper change; existing tokens do not change.
+- **Introspection:** a signed, unexpired JWT may still fail the live active-token and
+  identity checks. Diagnose the failing check without disabling audience, issuer,
+  signature, expiry or revocation protections.
+- **Grant:** successful authentication and app admission still do not authorize a
+  newsletter dataset. Verify the intended share, recipient and allowed operations through
+  supported discovery before any bounded data request. Empty ingestion/source fields or
+  a private registry listing do not establish a business-only data boundary.
+
+Claude may display a **Disconnect** button while also showing an authorization error and
+no available tools. Do not report that contradictory state as a successful connection.
+Record the error reference, and retry only after a meaningful repair. If Keycloak event
+saving is disabled, the absence of historical events is not evidence of successful auth;
+do not enable broader logging without considering its configuration and data implications.
+
 ## OpenAI and Cursor callbacks
 
 Do not add other AI clients' redirects to Claude's client. Inspect each intended client's
@@ -95,7 +134,7 @@ Report what was observed and what remains unknown:
 | Outcome | Evidence |
 |---|---|
 | Connector added | Entry in the intended AI account, actual endpoint and connector ID/link |
-| Authentication works | Completed sign-in and connected state; no unresolved registration error |
+| Authentication works | Completed sign-in, available expected tools and no unresolved authorization/registration error; a Disconnect button alone is insufficient |
 | Intended access works | Supported identity/share discovery establishes caller, intended owner/node and permitted operations; unknown fields remain unknown |
 | Useful read works | One authorized bounded request through that actual client, with its result/receipt; another agent's answer is not a substitute |
 | Source ingestion works, if requested | Enabled source plus successful sync/checkpoint; queued work or a client read is not collection |
