@@ -15,6 +15,12 @@ follows [Agent Plugins 1.0.0](https://agent-plugins.org) (`plugin.json`, `skills
 
 ## Requirements
 
+Branding uses the same committed `assets/logo.png` across Cursor's `logo`, OpenAI's
+`interface.logo` / `composerIcon`, and Anthropic's directory `icon`. Installing an updated
+package makes these fields available to the host; it does not update a separately configured
+remote MCP connector. See [remote branding](skills/topos-setup/references/remote-clients.md#branding)
+for the server metadata and known Claude rendering limitation.
+
 - A Topos node **1.5.15 or later** for the one-command setup (`topos-node setup`). On an
   older node the setup skill says so and offers to update it; everything else works.
 - What each client does after setup: Claude Code syncs a session the moment it ends

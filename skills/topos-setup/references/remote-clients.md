@@ -166,9 +166,22 @@ Connecting Topos does not itself authorize a schedule change or sending its outp
 
 ## Branding
 
-The local plugin already carries `assets/logo.png`. That manifest asset is separate from
-the remote MCP server's branding. A server can advertise `serverInfo.icons` and host public
-icon assets, but Claude decides what its connector tile displays. As of 2026-10-22,
+The plugin uses the same square `assets/logo.png` in each platform's documented field:
+Cursor `logo`, OpenAI `interface.logo` and `interface.composerIcon` (also in the portable
+manifest's `extensions.com.openai.interface`), and Anthropic directory `icon`. Claude Code
+does not render the directory field; its validator accepts it from v2.1.281 onward.
+Keep generated manifests in sync with `scripts/publish.sh`; do not add the Anthropic icon
+field to marketplace entries.
+
+That package asset is separate from the remote MCP server's branding. Configure the server
+with `serverInfo.icons` using a public HTTPS PNG URL, accurate MIME type and dimensions,
+plus `websiteUrl`. Prefer a content-addressed image filename so immutable caches stay
+correct. Conventional `/favicon.ico` and `/favicon.png` aliases can help clients that use
+favicon discovery, but are not proof of support in a particular host. Do not use a data URI
+as a workaround for Claude. Verify the initialize response and unauthenticated image GET
+after deployment, without issuing a data-tool call or altering grants.
+
+Claude decides what its connector tile displays. As of 2026-10-22,
 Anthropic's tracker has an open report that custom connector icons are ignored or replaced
 with cached favicons. Verify current behavior before promising a logo change. Do not
 generate a replacement logo, change production domains or recreate connectors merely to
@@ -183,6 +196,10 @@ try to refresh the tile. Icon work is not an authentication fix.
 - [OpenAI OAuth and redirect configuration](https://developers.openai.com/plugins/build/auth)
 - [Cursor MCP and static OAuth configuration](https://prod.cursor.com/docs/mcp)
 - [Claude custom connector icon issue](https://github.com/anthropics/claude-ai-mcp/issues/152)
+- [OpenAI plugin icon fields](https://developers.openai.com/plugins/deploy/submission)
+- [Cursor plugin logos](https://prod.cursor.com/docs/reference/plugins#logos)
+- [Anthropic directory icon](https://code.claude.com/docs/en/plugins-reference#directory-listing-fields)
+- [MCP implementation icons](https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation)
 
 These external interfaces can change. Treat the dated observations as troubleshooting
 evidence, not permanent product constraints or a claim about every deployment.
