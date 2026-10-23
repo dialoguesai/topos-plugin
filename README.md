@@ -66,6 +66,12 @@ Note: this plugin ships a `bin/` directory (the launcher). claude.ai and Cowork 
 install plugins with a top-level `bin/`; cloud sessions have no local node to talk to
 anyway, and they are not captured.
 
+Connecting **Claude web or a cloud scheduled task** is a separate remote MCP setup;
+local plugin enrollment or `claude_desktop_config.json` does not carry over to it.
+The setup skill can guide that workflow from a local agent: see
+[remote client setup and OAuth troubleshooting](skills/topos-setup/references/remote-clients.md).
+This guidance does not make the local launcher a cloud plugin or turn on cloud-session capture.
+
 ### Codex
 
 ```bash
@@ -105,7 +111,7 @@ tried: `gemini extensions install https://github.com/dialoguesai/topos-plugin --
 | Skill | What it does | File |
 |---|---|---|
 | `topos-ask` | Answer a question from the user's own Topos (their messages, mail, chat history, coding sessions and the facts and goals derived from them) through the plugin's Topos tools. Use whenever the user asks about their own history, data, contacts, projects or past conversations — "what have I been building", "what did I ask Claude Code yesterday", "who did I talk to about X", "how many sessions last month", "what's in my Topos" — or names Topos. | [SKILL.md](skills/topos-ask/SKILL.md) |
-| `topos-setup` | Set up Topos for this coding agent — find or install the Topos node on this computer, connect it to the user's account in the browser, turn on this tool's own session history as a source, and end with one verdict (GOOD TO GO / INCOMPLETE / FAILED). Use when the user says "set up Topos", "connect Topos", "install Topos", "start Topos", "update Topos", "is Topos working", or when a Topos tool answers "isn't connected to Topos yet" or "Topos isn't running". | [SKILL.md](skills/topos-setup/SKILL.md) |
+| `topos-setup` | Set up Topos for the requested AI client. For local coding agents, find or install the node, pair the account, connect the agent and enable approved session capture. For Claude web or cloud tasks, guide the separate remote connector and OAuth setup. Use for Topos installation, connection, updates or setup failures. | [SKILL.md](skills/topos-setup/SKILL.md) |
 | `topos-shadow` | Explain and control how this tool's own session history becomes a Topos source — what the node reads from the transcript files, what it leaves out, which folders to skip, how to pause or resume, how to disconnect this tool, and why cloud sessions are not captured. Use when the user asks "what does Topos keep from my sessions", "what gets uploaded", "skip this folder", "pause Topos", "stop syncing", "disconnect Claude Code from Topos", "delete what Topos read", or before enabling the source. | [SKILL.md](skills/topos-shadow/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
 

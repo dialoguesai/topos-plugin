@@ -10,6 +10,11 @@ finishes, relay each human step word for word, and end with a real answer.
 
 Extra arguments from the person: `$ARGUMENTS` (pass them through to every `topos-node setup` run).
 
+This command enrolls **local Claude Code**. If the person instead asks to connect Claude
+web or a cloud scheduled task, follow `skills/topos-setup/references/remote-clients.md`.
+Do not install a second node, enroll this coding agent or enable its history to stand in
+for the requested remote connection.
+
 ## Rules that never bend
 
 - Never read `~/.topos/.env`, `~/.topos/agents/` or `~/.topos/pairing.json`. Never print, paste or

@@ -1,7 +1,7 @@
 {
   "name": "topos",
   "description": "Use Codex as your Topos: set up a Topos node on this computer, answer questions from your own data, and keep your Codex sessions as a source.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Dialogues",
     "url": "https://dialogues.ai"
