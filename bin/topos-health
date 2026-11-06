@@ -6,11 +6,16 @@
 #
 # It starts `topos-node status --json` in the background, writing into the
 # plugin's data directory, waits up to 1.2 s for it, and reads the result:
-#   not running   → Topos isn't running — say "start Topos".
-#   not paired    → Topos isn't connected to your account yet — say "set up Topos".
-#   agent missing → This agent isn't connected to Topos yet — say "set up Topos".
-#   outdated      → Topos is out of date — say "update Topos".
-#   all good      → nothing (no noise every session)
+#   not running          → Topos isn't running — say "start Topos".
+#   no identity at all   → Topos isn't connected to your account yet — say "set up Topos".
+#                          (an older node, or a key whose first connection has not finished;
+#                          a node that runs without an account is NOT this case)
+#   agent missing        → This agent isn't connected to Topos yet — say "set up Topos".
+#   outdated             → Topos is out of date — say "update Topos".
+#   local, no account    → Topos runs without an account; say "connect my Topos account" to add one.
+#                          Said ONCE per computer (a marker in the data directory), never every session:
+#                          running without an account is a working state, not a fault.
+#   all good             → nothing (no noise every session)
 # If status has not answered in time the hook speaks from the last FINISHED
 # answer when it is under a day old (status takes 1-5 s on a busy node, so a
 # hook that waited only for a fresh answer was silent every session), else it
@@ -38,6 +43,8 @@ mkdir -p "$DATA_DIR" 2>/dev/null || exit 0
 chmod 700 "$DATA_DIR" 2>/dev/null
 TMP="$DATA_DIR/status.$$.tmp"
 DONE="$DATA_DIR/status.json"
+# Written once the "runs without an account" line has been said; its presence silences it.
+LOCAL_HINT_MARK="$DATA_DIR/connect-later.said"
 
 # Create the temp file now, so the poll below never races the background job's
 # own redirect (observed: the poll saw no TMP, read no DONE, and said nothing).
@@ -56,7 +63,7 @@ FRESH=1
 [ -e "$TMP" ] && FRESH=0       # still running: fall back to the last finished answer
 [ -s "$DONE" ] || exit 0
 
-"$PY" -I - "$DONE" "$CLIENT" "$FRESH" <<'PY' 2>/dev/null
+"$PY" -I - "$DONE" "$CLIENT" "$FRESH" "$LOCAL_HINT_MARK" "$here/../lib" <<'PY' 2>/dev/null
 import json, os, sys, time
 if sys.argv[3] != "1":
     try:
@@ -68,13 +75,20 @@ try:
     s = json.load(open(sys.argv[1], encoding="utf-8"))
 except Exception:
     sys.exit(0)
-client = sys.argv[2]
+client, mark = sys.argv[2], sys.argv[4]
+# The one place the plugin's sentences live (lib/fallback_mcp.py); the import has no side effects.
+sys.path.insert(0, sys.argv[5])
+try:
+    from fallback_mcp import MSG_LOCAL_HINT
+except Exception:
+    MSG_LOCAL_HINT = 'Topos runs without an account; say "connect my Topos account" to add one.'
 if not isinstance(s, dict):
     sys.exit(0)
 node = s.get("node") if isinstance(s.get("node"), dict) else {}
 if node.get("running") is False:
     print("Topos isn't running — say \"start Topos\"."); sys.exit(0)
-if s.get("paired") is False:
+local = s.get("mode") == "local"
+if s.get("paired") is False and not local:
     print("Topos isn't connected to your account yet — say \"set up Topos\"."); sys.exit(0)
 agents = s.get("agents") if isinstance(s.get("agents"), list) else []
 mine = [a for a in agents if isinstance(a, dict) and a.get("client") == client and not a.get("revoked")]
@@ -82,5 +96,13 @@ if not mine:
     print("This agent isn't connected to Topos yet — say \"set up Topos\"."); sys.exit(0)
 if s.get("outdated") is True:
     print('Topos is out of date — say "update Topos".'); sys.exit(0)
+if local and not os.path.exists(mark):
+    # Once, and only after the node, the agent and the version are fine: a hint, not a nag.
+    try:
+        with open(mark, "w", encoding="utf-8") as fh:
+            fh.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n")
+    except OSError:
+        pass
+    print(MSG_LOCAL_HINT); sys.exit(0)
 PY
 exit 0

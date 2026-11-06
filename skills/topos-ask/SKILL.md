@@ -15,7 +15,9 @@ through five tools: `mcp__plugin_topos_topos__mcp_session_context`,
 ## Order
 
 1. **`mcp_session_context` first**, once per session. It says whose Topos this is, whether
-   it is paired and the control plane is connected, which scopes exist (with
+   it runs with an account (`mode: account`, `paired: true`) or without one (`mode: local`,
+   `paired: false`, `control_plane: local_only` — it still answers from everything collected
+   on this computer), which scopes exist (with
    `special_class`), which sources hold rows, and when the clock is. Read `hints`.
 2. **`list_scopes`** to pick the scope whose `description` and `example_questions` match the
    question. Coding history lives in `ai_coding_sessions:read`; do not look for it in

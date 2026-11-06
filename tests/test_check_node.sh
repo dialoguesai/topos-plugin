@@ -6,6 +6,9 @@
 #  (c) the same with the agent revoked    → FAILED (c4)
 #  (d) a node without `pair`              → INCOMPLETE (c1 blocked: on-ramp release missing)
 #  (e) status --json hangs                → c3/c6 blocked, never GOOD TO GO
+#  (f) a LOCAL node (mode local, paired false, control_plane local_only) → c3 and c5 pass:
+#      running without an account is a working state (local first, 2026-11)
+#  (g) paired false with NO mode          → c3 fails: an older node, or a key never connected
 # Fake HOME, empty PATH; nothing real is touched. The fake node's `mcp` is a tiny
 # python server answering the v1 tools with the CONTRACTS §1.4 wrapper.
 set -u
@@ -113,6 +116,32 @@ sed -i.bak "s|  status) cat \"$FAKE_HOME/status.json\" ;;|  status) sleep 30 ;;|
 v=$(run_case "status hangs")
 case "$v" in *"GOOD TO GO"*) echo "  FAIL rounded up"; fail=1 ;; *) echo "  ok   not GOOD TO GO" ;; esac
 [ "$(status_of c3)" = blocked ] && echo "  ok   c3 blocked on timeout" || { echo "  FAIL c3 should be blocked, is $(status_of c3)"; fail=1; }
+
+sed -i.bak "s|  status) sleep 30 ;;|  status) cat \"$FAKE_HOME/status.json\" ;;|" "$FAKE_HOME/.local/bin/topos-node"
+
+echo "== (f) local node: mode local, paired false, control_plane local_only =="
+cat > "$FAKE_HOME/status.json" <<'JSON'
+{"node": {"running": true, "version": "1.6.0", "pid": 4242, "socket": true, "owner_key_persisted": true},
+ "paired": false, "mode": "local", "topos_id": "t_local", "user_id_present": true,
+ "control_plane": "local_only", "outdated": false, "latest_version": "1.6.0",
+ "agents": [{"client": "claude-code", "enrolled_at": "2026-11-05T18:00:00Z", "revoked": false}],
+ "sources": [{"source_id": "claude_code_sessions", "enabled": true, "paused": false, "last_sync_at": "2026-11-05T20:00:00Z", "last_error": null}],
+ "pairing": null, "exit_code": 0}
+JSON
+sed -i.bak 's/"paired": True, "control_plane": "connected"/"paired": False, "mode": "local", "control_plane": "local_only"/' "$FAKE_HOME/fake_mcp.py"
+grep -q '"mode": "local"' "$FAKE_HOME/fake_mcp.py" || { echo "  FAIL fake server not switched to local"; fail=1; }
+v=$(run_case "local node")
+case "$v" in *"INCOMPLETE (1 blocked"*) echo "  ok   INCOMPLETE with one blocked" ;; *) echo "  FAIL expected INCOMPLETE (1 blocked …)"; fail=1 ;; esac
+[ "$(status_of c3)" = pass ] && echo "  ok   c3 passes for a local node" || { echo "  FAIL c3 should pass, is $(status_of c3)"; fail=1; }
+[ "$(status_of c5)" = pass ] && echo "  ok   c5 passes for a local node" || { echo "  FAIL c5 should pass, is $(status_of c5)"; fail=1; }
+grep -q '"detail": "mode=local paired=False' "$FAKE_HOME/checks.jsonl" && echo "  ok   c3 detail names the mode" || { echo "  FAIL c3 detail should name mode=local"; fail=1; }
+
+echo "== (g) paired false with no mode: an older node, or a key that never connected =="
+sed -i.bak 's/"mode": "local", //' "$FAKE_HOME/status.json"
+sed -i.bak 's/"control_plane": "local_only"/"control_plane": "offline"/' "$FAKE_HOME/status.json"
+v=$(run_case "unpaired, no mode")
+case "$v" in *"FAILED"*) echo "  ok   FAILED" ;; *) echo "  FAIL expected FAILED"; fail=1 ;; esac
+[ "$(status_of c3)" = fail ] && echo "  ok   c3 fails without a mode" || { echo "  FAIL c3 should fail, is $(status_of c3)"; fail=1; }
 
 sed -n '1,12p' "$FAKE_HOME/verdict.txt" | sed 's/^/    /'
 exit $fail

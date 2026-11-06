@@ -142,6 +142,7 @@ def main() -> int:
         out["context"] = {
             "contract_version": ctx.get("contract_version"),
             "paired": ctx.get("paired"),
+            "mode": ctx.get("mode"),  # local (no account yet) | account | None on an older node
             "control_plane": ctx.get("control_plane"),
             "agent_client": (ctx.get("agent") or {}).get("client"),
             "topos_node_version": ctx.get("topos_node_version"),

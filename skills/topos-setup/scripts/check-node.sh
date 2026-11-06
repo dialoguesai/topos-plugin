@@ -126,11 +126,17 @@ if [ "$C1" = pass ]; then
         record c2 fail "Node runs as a background service" "service status exit $SVC_RC: $SVC_OUT"
     fi
 
-    # ---- c3: paired, connected, owner key persisted (status --json, exit 0) --
+    # ---- c3: identity + control-plane state consistent, owner key persisted (status --json, exit 0)
+    # Two ways to pass (local first, 2026-11): an ACCOUNT node is `paired: true`,
+    # `control_plane: connected`; a LOCAL node (no account yet) is `mode: local`,
+    # `paired: false`, `control_plane: local_only`. Both exit 0 with the owner key on disk.
+    # `paired: false` with no `mode` is still a fail: an older node, or a key whose first
+    # connection never finished.
     run_with_timeout "$STATUS_TIMEOUT" "$WORK/status.json" "$NODE" status --json
     STATUS_RC=$?
+    C3_NAME="Node has an identity (account: paired + connected; local: mode local + local_only), owner key persisted"
     if [ "$STATUS_RC" = 124 ]; then
-        record c3 blocked "Node is paired, control plane connected, owner key persisted" "status --json did not answer within ${STATUS_TIMEOUT} s"
+        record c3 blocked "$C3_NAME" "status --json did not answer within ${STATUS_TIMEOUT} s"
         C3=blocked
     else
         C3=$("$PY" -I - "$WORK/status.json" "$STATUS_RC" <<'PY'
@@ -142,11 +148,14 @@ try:
 except Exception:
     print("fail\tstatus --json is not JSON (exit %s)" % rc); raise SystemExit
 paired = d.get("paired"); cp = d.get("control_plane"); okp = (d.get("node") or {}).get("owner_key_persisted")
-ok = paired is True and cp == "connected" and okp is True and rc == "0"
-print(("pass" if ok else "fail") + "\tpaired=%s control_plane=%s owner_key_persisted=%s exit=%s" % (paired, cp, okp, rc))
+mode = d.get("mode")
+account_ok = paired is True and cp == "connected"
+local_ok = mode == "local" and paired is False and cp == "local_only"
+ok = (account_ok or local_ok) and okp is True and rc == "0"
+print(("pass" if ok else "fail") + "\tmode=%s paired=%s control_plane=%s owner_key_persisted=%s exit=%s" % (mode, paired, cp, okp, rc))
 PY
 )
-        record c3 "${C3%%	*}" "Node is paired, control plane connected, owner key persisted" "${C3#*	}"
+        record c3 "${C3%%	*}" "$C3_NAME" "${C3#*	}"
         C3=${C3%%	*}
     fi
 
@@ -192,8 +201,10 @@ except Exception:
 if d.get("error"):
     print("fail\t" + d["error"]); raise SystemExit
 ctx = d.get("context") or {}
-ok = d.get("tools_match_contract") is True and ctx.get("contract_version") == 1 and ctx.get("paired") is True and ctx.get("agent_client") == c
-print(("pass" if ok else "fail") + "\ttools=%s contract_version=%s paired=%s agent=%s control_plane=%s" % (",".join(d.get("tools") or []), ctx.get("contract_version"), ctx.get("paired"), ctx.get("agent_client"), ctx.get("control_plane")))
+# An account node says paired: true; a local-only node says mode: local, paired: false. Both answer.
+identity_ok = ctx.get("paired") is True or (ctx.get("mode") == "local" and ctx.get("paired") is False)
+ok = d.get("tools_match_contract") is True and ctx.get("contract_version") == 1 and identity_ok and ctx.get("agent_client") == c
+print(("pass" if ok else "fail") + "\ttools=%s contract_version=%s mode=%s paired=%s agent=%s control_plane=%s" % (",".join(d.get("tools") or []), ctx.get("contract_version"), ctx.get("mode"), ctx.get("paired"), ctx.get("agent_client"), ctx.get("control_plane")))
 PY
 )
     record c5 "${C5%%	*}" "Topos tools answer through the agent's own server (mcp_session_context, v1 tool set)" "${C5#*	}"
