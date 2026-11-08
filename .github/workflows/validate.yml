@@ -42,6 +42,12 @@ jobs:
       - name: Stop hook exits within 1.5 s and never blocks
         run: sh tests/test_hook_budget.sh
 
+      - name: SessionStart line is silent when all is well, said once for a local node, never a nag
+        run: sh tests/test_health_hook.sh
+
+      - name: Setup checks c1–c8 against a fake node (account and local identities)
+        run: sh tests/test_check_node.sh
+
       - name: claude plugin validate (when the Claude Code CLI is available)
         run: |
           if command -v claude >/dev/null 2>&1; then

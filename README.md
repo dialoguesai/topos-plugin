@@ -1,13 +1,17 @@
 # Topos plugin for Claude Code, Codex and Cursor
 
 One plugin, three clients. It turns your coding agent into your Topos: say **"set up
-Topos"** and the agent installs or finds the Topos node on this computer, connects it to
-your account in the browser, and turns on your own session history as a source. Then ask
-it things like *"What have I been building this week, and where did I get stuck?"*
+Topos"** and the agent installs or finds the Topos node on this computer, starts it, lets
+you approve the agent once in a Terminal window, and turns on your own session history as a
+source. No account is needed: the node runs on this computer alone. Then ask it things like
+*"What have I been building this week, and where did I get stuck?"*
 
 - Your transcript files never leave the computer; the node reads them here.
 - Answers you ask for go to the AI company behind the tool you asked in.
 - No key is ever typed into a chat, a config file or this plugin.
+- **Connect an account later, if you want to.** Say "connect my Topos account": the agent
+  shows a code to approve in the browser, Topos restarts, and everything it has collected
+  moves to that account. An account adds sharing, the web and phone apps and cloud sources.
 
 Plugin name `topos`, marketplace `topos`, Claude Code install id `topos@topos`. Layout
 follows [Agent Plugins 1.0.0](https://agent-plugins.org) (`plugin.json`, `skills/`,
@@ -23,6 +27,10 @@ for the server metadata and known Claude rendering limitation.
 
 - A Topos node **1.5.15 or later** for the one-command setup (`topos-node setup`). On an
   older node the setup skill says so and offers to update it; everything else works.
+- Running **without an account** needs the node release after 1.5.44: its
+  `topos-node setup --help` lists `--connect`, and `topos-node status --json` reports
+  `mode: local`. An earlier node pairs an account first and cannot start without a key; the
+  setup skill follows whichever node is installed.
 - What each client does after setup: Claude Code syncs a session the moment it ends
   (`Stop` hook) and hourly; Cursor syncs at `stop` when transcripts are on, and hourly;
   Codex syncs hourly (no hooks by design). The node reads the transcript files locally.
@@ -61,8 +69,11 @@ claude plugin install topos@topos        # then /reload-plugins in an open sessi
 ```
 
 Then type **`/topos:setup`** (or say "set up Topos"). It asks you once, runs
-`topos-node setup` until everything is done, and stops only for the steps that are yours:
-approving a code in the browser, "is that you?", and approving Claude Code once. After setup, terminal users run `/mcp reconnect all`
+`topos-node setup` until everything is done, and stops only for the step that is yours:
+approving Claude Code once in a Terminal window. No account, no code, no browser. To add an
+account later, say "connect my Topos account" (`/topos:setup --connect`): then a code to
+approve in the browser and "is that you?" are yours too, Topos restarts, and what it has
+collected moves to the account. After setup, terminal users run `/mcp reconnect all`
 (v2.1.284+) if the Topos tools have not attached; the desktop app and VS Code pick the
 server up in the next session. Plugin auto-update is off by default for third-party
 marketplaces: enable it under `/plugin → Marketplaces`, or run
@@ -117,7 +128,7 @@ tried: `gemini extensions install https://github.com/dialoguesai/topos-plugin --
 | Skill | What it does | File |
 |---|---|---|
 | `topos-ask` | Answer a question from the user's own Topos (their messages, mail, chat history, coding sessions and the facts and goals derived from them) through the plugin's Topos tools. Use whenever the user asks about their own history, data, contacts, projects or past conversations — "what have I been building", "what did I ask Claude Code yesterday", "who did I talk to about X", "how many sessions last month", "what's in my Topos" — or names Topos. | [SKILL.md](skills/topos-ask/SKILL.md) |
-| `topos-setup` | Set up Topos for the requested AI client. For local coding agents, find or install the node, pair the account, connect the agent and enable approved session capture. For Claude web or cloud tasks, guide the separate remote connector and OAuth setup. Use for Topos installation, connection, updates or setup failures. | [SKILL.md](skills/topos-setup/SKILL.md) |
+| `topos-setup` | Set up Topos for the requested AI client. For local coding agents, find or install the node, start it on this computer with no account, connect the agent and enable approved session capture; connecting a Dialogues account is a separate, optional step (`--connect`) that keeps everything collected. For Claude web or cloud tasks, guide the separate remote connector and OAuth setup. Use for Topos installation, connection, updates, "connect my Topos account", or setup failures. | [SKILL.md](skills/topos-setup/SKILL.md) |
 | `topos-shadow` | Explain and control how this tool's own session history becomes a Topos source — what the node reads from the transcript files, what it leaves out, which folders to skip, how to pause or resume, how to disconnect this tool, and why cloud sessions are not captured. Use when the user asks "what does Topos keep from my sessions", "what gets uploaded", "skip this folder", "pause Topos", "stop syncing", "disconnect Claude Code from Topos", "delete what Topos read", or before enabling the source. | [SKILL.md](skills/topos-shadow/SKILL.md) |
 <!-- END_SKILLS_TABLE -->
 
@@ -136,7 +147,7 @@ instruction bundle.
 | `gemini-extension.json` | Gemini CLI | generated, untested |
 | `bin/topos-mcp` | all | POSIX launcher: resolves `topos-node` by the fixed list (`$TOPOS_NODE_BIN`, `~/.local/bin`, `~/.topos/runtime/bin`, `/opt/homebrew/bin`, `/usr/local/bin`), waits for the node's socket, execs `topos-node mcp --client NAME`; otherwise serves a stand-in that answers every call with "say set up Topos" / "say start Topos" and hands over to the real server when the node appears |
 | `bin/topos-sync` | Claude Code, Cursor | reads `transcript_path` from the hook's stdin (nothing else), starts `topos-node sources sync <source> --session PATH --quiet` detached, exits at once |
-| `bin/topos-health` | Claude Code | one line at session start when Topos is not running, not paired, this agent is not enrolled, or the node is out of date |
+| `bin/topos-health` | Claude Code | one line at session start when Topos is not running, has no identity, this agent is not enrolled, or the node is out of date; a node running without an account gets one soft "connect later" line, once per computer, never a nag |
 | `bin/topos-node` | Claude Code's Bash tool | wrapper so `topos-node …` works even when `~/.local/bin` is not on PATH |
 | `skills/` | all | `topos-setup`, `topos-ask`, `topos-shadow` |
 | `evals/` | Claude Code | `claude plugin eval .` cases with mocked Topos tools |
@@ -155,6 +166,8 @@ claude --plugin-dir .           # try it in a session without installing
 claude plugin eval .            # run the eval suite against mocked Topos tools
 sh tests/test_fallback_mcp.sh   # the stand-in MCP server with no node on this machine
 sh tests/test_hook_budget.sh    # the Stop hook exits inside 1.5 s
+sh tests/test_health_hook.sh    # the SessionStart line: silent, once for a local node, never a nag
+sh tests/test_check_node.sh     # the setup checks c1–c8 against a fake node (account and local)
 ```
 
 Release: bump with `python3 -I scripts/plugin_versions.py bump patch`, run

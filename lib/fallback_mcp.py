@@ -36,10 +36,15 @@ MSG_NOT_RUNNING = 'Topos isn\'t running — say "start Topos".'
 MSG_DISCONNECTED = "This agent was disconnected from Topos."
 CONTRACT_SENTENCES = (MSG_NOT_SET_UP, MSG_NOT_RUNNING, MSG_DISCONNECTED)
 
+# Not an error sentence: the one soft line bin/topos-health says ONCE when the node runs without
+# an account (`status --json` says `mode: local`, `paired: false`). "Not connected to your account"
+# is never said about such a node; running local-only is a working state, not a fault.
+MSG_LOCAL_HINT = 'Topos runs without an account; say "connect my Topos account" to add one.'
+
 TOOLS = [
     {
         "name": "mcp_session_context",
-        "description": "Who this Topos belongs to, whether it is paired and connected, the scopes it knows and the sources it holds. Call this first.",
+        "description": "Who this Topos belongs to, whether it runs with an account (mode: account, paired) or without one (mode: local, paired false), the scopes it knows and the sources it holds. Call this first.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
     },
     {

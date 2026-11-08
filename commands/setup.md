@@ -1,12 +1,19 @@
 ---
-description: Set up Topos for Claude Code — install it if needed, create or connect your Topos, keep your Claude Code sessions as a source, and get a first answer
-argument-hint: "[--backfill 30d] [--skip FOLDER]..."
+description: Set up Topos for Claude Code — install it if needed, run it on this computer with no account, keep your Claude Code sessions as a source, and get a first answer; connecting a Dialogues account is optional and can come later
+argument-hint: "[--connect] [--backfill 30d] [--skip FOLDER]..."
 allowed-tools: Bash(topos-node --version), Bash(topos-node setup *), Bash(sh ${CLAUDE_PLUGIN_ROOT}/skills/topos-setup/scripts/check-node.sh *), Bash(python3 -I ${CLAUDE_PLUGIN_ROOT}/skills/topos-setup/scripts/verdict.py *), mcp__plugin_topos_topos__mcp_session_context, mcp__plugin_topos_topos__list_scopes, mcp__plugin_topos_topos__query_scope
 ---
 
 Set up Topos for this Claude Code. One command, `topos-node setup`, does every step it can
 do alone and stops only where the person must act. Your job is to ask once, run it until it
 finishes, relay each human step word for word, and end with a real answer.
+
+**Local by default.** Topos runs on this computer with no account: the node starts, mints its
+own identity, approves Claude Code once in a Terminal window and reads Claude Code's history.
+Nothing is created in the browser. Connecting a Dialogues account is a separate step the
+person can take any time with `--connect` (section 5); everything collected moves with it.
+Pass `--connect` only when the person asked for the account ("connect my Topos account", or
+they said so when you asked).
 
 Extra arguments from the person: `$ARGUMENTS` (pass them through to every `topos-node setup` run).
 
@@ -42,32 +49,40 @@ Run `topos-node --version` (the plugin's wrapper finds it even when `~/.local/bi
 Run `topos-node setup --client claude-code --plan --json $ARGUMENTS`. It changes nothing. Turn
 the steps it reports into ONE itemized question — list only what is still to do:
 
-- **key** — "Connect this computer to your Topos account. I'll show you a code to approve in the
-  browser; sign in or create an account there."
-- **node** — "Start Topos so it keeps running in the background and after a restart."
-- **agent** — "Let Claude Code read your Topos as you. You approve it once; every read is recorded
-  under its name, and you can disconnect it any time."
+- **node** — "Start Topos so it keeps running in the background and after a restart. It runs
+  on this computer with no account."
+- **agent** — "Let Claude Code read your Topos as you. You approve it once, in a Terminal
+  window that opens for you; every read is recorded under its name, and you can disconnect it
+  any time."
+- **key** (only with `--connect`) — "Connect this computer to your Dialogues account. I'll show
+  you a code to approve in the browser; sign in or create an account there."
 - **source** — from `preview`: "Keep your Claude Code history in Topos: N sessions, about X MB of
   what you typed and Claude's replies, from DATE to DATE. Left out: command output, file
   contents, Claude's private reasoning and sub-agent work. Folders: … — any to skip?"
 
 Add one line: "What Claude reads from Topos goes to Anthropic, the company behind Claude Code, to
-answer you." Wait for the yes (and any folders to skip; pass each as `--skip NAME`).
+answer you." Without `--connect`, add: "No account is needed; you can connect one later and
+keep everything." Wait for the yes (and any folders to skip; pass each as `--skip NAME`).
 
 ## 3. Run until done
 
 Run `topos-node setup --client claude-code --json $ARGUMENTS` (plus the `--skip` flags), and read
 `exit_code`, `step` and `human`:
 
-- **0** — everything is set up. Go to 4.
+- **0** — everything is set up. `state` is `done_local` (no account; `mode: local`) or `done`
+  (account connected). For `done_local`, say the `connect.say` sentence once — it is an offer,
+  not a step — and go to 4.
 - **2** — the person must act. Show `human.say` exactly as written, then:
-  - `approve_code`: show the link and the code as text (never put the code in a URL). Wait about
-    20 seconds between re-runs while they approve; a re-run is safe and shows the same code.
-  - `confirm_account`: ask the question in `human.say` and wait. Re-run with
+  - `approve_in_terminal`: a Terminal window is open ("Connect your coding tool to the Topos on
+    this computer"); wait until they say they answered it, then re-run.
+  - `approve_code` (`--connect`): show the link and the code as text (never put the code in a
+    URL). Wait about 20 seconds between re-runs while they approve; a re-run is safe and shows
+    the same code.
+  - `confirm_account` (`--connect`): ask the question in `human.say` and wait. Re-run with
     `--confirm-account` ONLY after the person says yes. If they say no, stop: nothing of theirs
     was read.
-  - `approve_in_terminal`: a Terminal window is open; wait until they say they answered it,
-    then re-run.
+  - `restart_topos_app` (`--connect`, Topos.app supervises the node): the person quits and
+    reopens Topos so it reads the new key; then re-run.
   - `wait` or `free_disk`: wait for the person, then re-run.
 - **1, 4 or 5** — report `message` and stop. 5 means the pairing was denied: nothing was created.
 
@@ -84,4 +99,18 @@ later answers get sharper.
 
 For a verdict a person can trust, run the `topos-setup` skill's checks
 (`sh ${CLAUDE_PLUGIN_ROOT}/skills/topos-setup/scripts/check-node.sh --client claude-code`), and report
-its verdict line first, as it prints it.
+its verdict line first, as it prints it. A local node passes c3 and c5 with `mode: local`,
+`paired: false`; that is not a defect.
+
+## 5. Connect an account later (only when asked)
+
+When the person says "connect my Topos account" (or the session started with "Topos runs
+without an account; say 'connect my Topos account' to add one" and they took it up), run:
+
+`topos-node setup --client claude-code --connect --json $ARGUMENTS`
+
+Tell them first: "This shows a code to approve in the browser, where you sign in or create a
+Dialogues account. Topos then restarts and moves everything it has collected to that account;
+nothing is lost. It adds sharing, the web and phone apps and cloud sources." Then run until exit
+0 as in section 3 (`approve_code` → `confirm_account` → the restart → `done`). `status --json`
+afterwards says `mode: account`, `paired: true`, `control_plane: connected`.
