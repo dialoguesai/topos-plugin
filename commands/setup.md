@@ -129,4 +129,11 @@ This plugin also installs the `topos-add-fact-pack` skill. When asked to have To
 new kind of fact ("keep track of the books I read"), follow that skill: draft the pack, check
 it with `topos-node packs add FILE --check --json`, try it with `topos-node packs try FILE
 --json`, then open the owner's one approval. If `packs try` is missing, report an unsupported
-node version and use the setup update flow.
+node version (these commands ship in topos-node 1.5.54) and use the setup update flow.
+
+Setup makes the skill available; it creates no pack unless asked. An enabled pack extracts
+from matching new records as they arrive; reading history is optional and only when the
+person asks. Extraction runs on the local model, so report "skill installed" and
+"extraction ready" separately when no local model is picked. No account is needed. Without
+one, a pack's facts are never shared with another person; after connecting one, the owner
+can select the pack in a person's grant, and adding a pack never widens an existing grant.

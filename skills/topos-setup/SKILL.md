@@ -219,8 +219,10 @@ creation or cloud registration. Setup makes the skill available; it does not cre
 arbitrary source without the user asking for one.
 
 `topos-add-fact-pack` is bundled the same way. It needs `topos-node packs try` (check
-`topos-node packs try --help`); it adds no pack without the user asking for one, and each
-pack waits for the owner's yes in a terminal.
+`topos-node packs try --help`; topos-node 1.5.54 or later); it adds no pack without the user
+asking for one, and each pack waits for the owner's yes in a terminal. An enabled pack reads
+matching new records on ingest; history only when asked. Without an account its facts are
+not shared with anyone.
 
 ## Connect an account later
 
