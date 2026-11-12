@@ -76,7 +76,7 @@ For `[{"id":"row:one","content":"Synthetic row"}]`:
   "enrichment_trigger": "manual",
   "pipeline_include_data_table": true,
   "tables": [{
-    "table_id": "my_rows_data",
+    "table_id": "private_my_rows_data",
     "display_name": "Rows",
     "columns": [
       {"name":"record_id","type":"text","primary_key":true},
@@ -91,7 +91,7 @@ For `[{"id":"row:one","content":"Synthetic row"}]`:
 ```
 
 This stores rows without canonical search or facts. Private raw tables must be named with
-the source id as a prefix (dots and hyphens become underscores), followed by `_`; existing
+`private_`, then the source id (dots and hyphens become underscores), followed by `_`; existing
 unrelated tables cannot be reused. Confirm the user wants raw-only storage before proceeding
 when their request was to make the data available in answers.
 
