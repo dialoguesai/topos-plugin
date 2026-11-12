@@ -23,7 +23,9 @@ requested. A read-only client needs no new data source. A request for additional
 sources is separate from enabling this coding tool's history; use the supported source
 catalog/preview and confirm the selected data, backfill and exclusions before enabling it.
 For a new private JSON/JSONL/CSV source, use [topos-add-source](../topos-add-source/SKILL.md).
-It works locally without an account or developer key. If a source needs a new sync adapter,
+It works locally without an account or developer key.
+For a new kind of fact Topos should notice in records it already holds, use
+[topos-add-fact-pack](../topos-add-fact-pack/SKILL.md). If a source needs a new sync adapter,
 report that development gap rather than inventing a source ID.
 
 **Local setup produces:** a Topos node running on this computer, this agent enrolled as its
@@ -215,6 +217,10 @@ discoverable and check `topos-node sources add --help`. If unavailable, report t
 needs a release supporting private source creation; do not route the user through account
 creation or cloud registration. Setup makes the skill available; it does not create an
 arbitrary source without the user asking for one.
+
+`topos-add-fact-pack` is bundled the same way. It needs `topos-node packs try` (check
+`topos-node packs try --help`); it adds no pack without the user asking for one, and each
+pack waits for the owner's yes in a terminal.
 
 ## Connect an account later
 

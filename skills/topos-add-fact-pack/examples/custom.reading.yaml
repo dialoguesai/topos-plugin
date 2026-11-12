@@ -1,0 +1,40 @@
+pack: custom.reading
+version: "1.0.0"
+title: Books I read
+sensitivity_class: personal
+role_policy: authored_only
+net_subject: deny
+disclosure_default: owner_only
+routing:
+  descriptors: [Books, novels, audiobooks]
+  exemplars: [reading a novel, reading a book, audiobook]
+predicates:
+  - name: custom.reading.book
+    value_type: structured
+    cardinality: multi
+    temporal: interval
+    altitude: stated
+    key_fields: [title]
+    required_fields: [title]
+    value_schema:
+      title: string
+      author: string
+      status: [reading, finished, abandoned]
+guidance:
+  definitions: A book the owner explicitly says they are reading, have finished or gave up on.
+  abstention:
+    - Do not extract a book someone else is reading or recommends.
+    - Do not extract films, articles or podcasts.
+revision:
+  supersedes_on:
+    custom.reading.book: [status]
+eval:
+  gold:
+    - text: Reading the novel Quillmoor.
+      role: authored
+      expect: [{predicate: custom.reading.book, value: {title: Quillmoor, status: reading}}]
+  negative_controls:
+    - text: My sister says I should read Quillmoor someday.
+      role: authored
+      expect: []
+consumers: [assistant_context]

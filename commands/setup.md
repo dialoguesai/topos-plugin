@@ -122,3 +122,11 @@ client reload and check `topos-node sources add --help`. When asked to add a pri
 source, follow that skill: infer locally, validate, open owner approval, then verify the
 import. No Dialogues account, developer key or public registration is required. If the
 command is missing, report an unsupported node version and use the setup update flow.
+
+## Fact packs
+
+This plugin also installs the `topos-add-fact-pack` skill. When asked to have Topos notice a
+new kind of fact ("keep track of the books I read"), follow that skill: draft the pack, check
+it with `topos-node packs add FILE --check --json`, try it with `topos-node packs try FILE
+--json`, then open the owner's one approval. If `packs try` is missing, report an unsupported
+node version and use the setup update flow.
