@@ -1,6 +1,6 @@
 ---
 name: topos-add-fact-pack
-description: Turn a plain request ("keep track of the books I read", "remember my workouts") into a fact pack on the person's own Topos. Draft the pack YAML, check it and its trigger words, try its examples on the local model, then open one owner approval that adds the pack, switches it on and reads recent history. Works without a Dialogues account. Use when someone wants Topos to start noticing a new kind of fact in their own records; connecting a new data source is the topos-add-source skill.
+description: Turn a plain request ("keep track of the books I read", "remember my workouts") into a fact pack on the person's own Topos. Draft the pack YAML, check it and its trigger words, try its examples on the local model, then open one owner approval that adds the pack and switches it on (and reads history only if the person asks). Works without a Dialogues account. Use when someone wants Topos to start noticing a new kind of fact in their own records; connecting a new data source is the topos-add-source skill.
 ---
 
 # Add a fact pack from a request
@@ -99,19 +99,19 @@ tokens, call the node's HTTP routes, write to its database or copy a file into
 
 Show them, briefly and in plain words: the title; what it notes, one line per predicate;
 whether it reads only what they wrote; its sensitivity; the trigger words; the try result;
-and the history window. One local model call per matching record is the cost; the
-approval names this node's seconds per call. Suggest 30 days of history unless they asked
-for more (`90d`, `all`, or a day as `YYYY-MM-DD`) or for none (drop `--backfill`).
+and that it reads new records as they arrive. Older records are read only if the person
+asks: then add `--backfill 30d` (or `90d`, `all`, a day as `YYYY-MM-DD`). Each matching
+record costs one local model call, and the approval names this node's seconds per call.
 
 Then, on macOS:
 
 ```bash
-topos-node packs add custom.<name>.yaml --on --backfill 30d --open-terminal --json
+topos-node packs add custom.<name>.yaml --on --open-terminal --json
 ```
 
-A Terminal window opens with the question; the person reads what will be added, switched
-on and read, and answers once. Your command returns at once with exit 2 and
-`status: approval_pending`: that means **waiting**, not added. Off macOS, or with
+A Terminal window opens with the question; the person reads what will be added and
+switched on (and, with `--backfill`, how much history is read) and answers once. Your
+command returns at once with exit 2 and `status: approval_pending`: that means **waiting**, not added. Off macOS, or with
 `status: needs_human`, give the person the printed `command` to run in their own terminal.
 Do not edit the file after this point: the window is tied to the file as you checked it
 and refuses a changed one. Without `--on` the pack is added switched off and reads
@@ -130,11 +130,12 @@ After the person says they answered:
    `unchanged` and the pack is off, the switch failed after the add; the window said why.
    `topos-node packs on <id> --open-terminal --json` asks again. If the window said
    whether it is on "is not known", read this list before doing anything else.
-3. `topos-node packs status`: the history run, its record count and progress. Facts arrive
-   as it goes; a large window takes a while. `topos-node packs stop` stops it.
+3. With `--backfill`: `topos-node packs status` shows the history run, its record count and
+   progress; `topos-node packs stop` stops it. Facts arrive as it goes, and a large window
+   takes a while. Without `--backfill`, facts arrive as new records come in.
 4. Once facts exist, follow the Topos ask skill if it is installed: ask Topos something the
-   pack should now know. Report what you saw: added, switched on, history running, facts
-   found. Do not claim an answer you did not get.
+   pack should now know. Report what you saw: added, switched on, history read or not,
+   facts found. Do not claim an answer you did not get.
 
 ## Later changes
 
@@ -148,9 +149,13 @@ After the person says they answered:
 ## Limits to say plainly
 
 - A pack describes the person only. A pack about other people is refused.
-- An added pack's facts are not shared with another person. A connected app reads them
-  only through a grant naming the pack; connected coding agents and routines read them as
-  they read a shipped pack's.
+- Without a Dialogues account, an added pack's facts are not shared with anyone. Once an
+  account is connected, the person can select the pack in a share with another person,
+  in the app; that grant holds the definition installed at the time, so changing or
+  re-adding the pack stops sharing it until they select it again. Adding a pack never
+  widens an existing share.
+- A connected app reads its facts only through a grant naming the pack; connected coding
+  agents and routines read them as they read a shipped pack's.
 - Special-category facts (health, beliefs, politics and the rest in the guide) are never
   given to a connected app. The file decides which facts are special; when unsure,
   declare `special` and tell the person why.
