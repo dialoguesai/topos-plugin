@@ -1,0 +1,31 @@
+pack: custom.commute
+version: "1.0.0"
+title: How I get to work
+sensitivity_class: none
+role_policy: authored_only
+net_subject: deny
+disclosure_default: owner_only
+routing:
+  descriptors: [Commute, commuting]
+  exemplars: [my commute]
+predicates:
+  - name: custom.commute.mode
+    value_type: enum
+    values: [bicycle, automobile, transit, pedestrian, telecommute]
+    cardinality: single
+    temporal: interval
+    altitude: stated
+guidance:
+  definitions: The owner's usual way of getting to work, as they state it.
+  abstention:
+    - Do not extract a one-off trip, such as taking a cab once.
+eval:
+  gold:
+    - text: My commute is by bicycle.
+      role: authored
+      expect: [{predicate: custom.commute.mode, value: bicycle}]
+  negative_controls:
+    - text: The news said the trains were late again.
+      role: authored
+      expect: []
+consumers: [assistant_context]

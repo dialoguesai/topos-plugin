@@ -1,0 +1,37 @@
+pack: custom.workouts
+version: "1.0.0"
+title: My workouts
+sensitivity_class: personal
+role_policy: authored_only
+net_subject: deny
+disclosure_default: owner_only
+routing:
+  descriptors: [Workout, workouts, gym, yoga, jogging, swimming, weightlifting]
+  exemplars: [lifted weights, jogged 5k]
+predicates:
+  - name: custom.workouts.session
+    value_type: structured
+    cardinality: multi
+    temporal: episodic
+    altitude: stated
+    event_identity: dated
+    required_fields: [activity]
+    value_schema:
+      activity: string
+      duration_minutes: number
+      distance_km: number
+guidance:
+  definitions: One training session the owner says they completed, and what it was.
+  abstention:
+    - Do not extract plans or intentions, such as wanting to start jogging.
+    - Do not extract another person's workout.
+eval:
+  gold:
+    - text: Jogged 5k at the gym.
+      role: authored
+      expect: [{predicate: custom.workouts.session, value: {distance_km: 5}}]
+  negative_controls:
+    - text: I really should start jogging again.
+      role: authored
+      expect: []
+consumers: [assistant_context]
