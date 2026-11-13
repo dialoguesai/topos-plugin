@@ -22,7 +22,9 @@ separate setup steps. Reuse an existing node/account and record which steps the 
 requested. A read-only client needs no new data source. A request for additional data
 sources is separate from enabling this coding tool's history; use the supported source
 catalog/preview and confirm the selected data, backfill and exclusions before enabling it.
-If the requested source needs development, report that gap rather than inventing a source ID.
+For a new private JSON/JSONL/CSV source, use [topos-add-source](../topos-add-source/SKILL.md).
+It works locally without an account or developer key. If a source needs a new sync adapter,
+report that development gap rather than inventing a source ID.
 
 **Local setup produces:** a Topos node running on this computer, this agent enrolled as its
 own named client, this tool's session history turned on as a source, and the Topos tools
@@ -204,6 +206,15 @@ the node is installed but not running with `Topos isn't running — say "start T
 Claude Code, Codex and Cursor the stand-in hands over to the real server by itself on the
 next tool call once the node is up, so the reload in A11 is only needed when a client
 does not pick that up (the verdict's c7 and a first tool call tell you).
+
+## Private source creation is included
+
+The plugin bundles `topos-add-source`; no separate Dialogues developer skill package is
+needed for private sources. After installing/reloading the plugin, verify the skill is
+discoverable and check `topos-node sources add --help`. If unavailable, report that the node
+needs a release supporting private source creation; do not route the user through account
+creation or cloud registration. Setup makes the skill available; it does not create an
+arbitrary source without the user asking for one.
 
 ## Connect an account later
 

@@ -114,3 +114,11 @@ Dialogues account. Topos then restarts and moves everything it has collected to 
 nothing is lost. It adds sharing, the web and phone apps and cloud sources." Then run until exit
 0 as in section 3 (`approve_code` → `confirm_account` → the restart → `done`). `status --json`
 afterwards says `mode: account`, `paired: true`, `control_plane: connected`.
+
+## Private sources
+
+This plugin also installs the `topos-add-source` skill. Verify it is available after the
+client reload and check `topos-node sources add --help`. When asked to add a private file
+source, follow that skill: infer locally, validate, open owner approval, then verify the
+import. No Dialogues account, developer key or public registration is required. If the
+command is missing, report an unsupported node version and use the setup update flow.
