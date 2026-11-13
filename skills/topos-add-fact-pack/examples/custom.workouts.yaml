@@ -21,7 +21,11 @@ predicates:
       duration_minutes: number
       distance_km: number
 guidance:
-  definitions: One training session the owner says they completed, and what it was.
+  definitions: >-
+    One training session the owner says they completed. activity is the kind of
+    exercise in a word or two (jogging, yoga), not the whole sentence. A stated
+    distance goes in distance_km as a plain number of kilometres, so "5k" is 5, and a
+    stated length of time goes in duration_minutes as a plain number.
   abstention:
     - Do not extract plans or intentions, such as wanting to start jogging.
     - Do not extract another person's workout.
